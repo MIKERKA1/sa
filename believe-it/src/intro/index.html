@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Believe It — Следы на снегу</title>
+<style>
+  :root { --ink: #0b0a09; --paper: #ebe2d1; --muted: rgba(235,226,209,.66); --faint: rgba(235,226,209,.4); --line: rgba(235,226,209,.22); --lamp: #e0a95e; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; background: var(--ink); color: var(--paper); overflow: hidden; font: 18px/1.45 Georgia, "Times New Roman", serif; -webkit-font-smoothing: antialiased; }
+  button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+  button:focus-visible, input:focus-visible { outline: 2px solid var(--lamp); outline-offset: 4px; }
+  [hidden] { display: none !important; }
+  .screen { position: fixed; inset: 0; }
+
+  /* ---------- menu ---------- */
+  #menu { display: grid; place-items: center; background: radial-gradient(120% 90% at 50% 40%, #16130f 0%, #0b0a09 60%, #050404 100%); }
+  #menu .bgimg { position: absolute; inset: -4%; background-size: cover; background-position: center 60%; opacity: .2; filter: blur(1.5px) brightness(.75) contrast(.95); animation: drift 60s ease-in-out infinite alternate; }
+  @keyframes drift { from { transform: scale(1.04) translateX(-1%); } to { transform: scale(1.1) translateX(1.2%); } }
+  #snow { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+  .menu-inner { position: relative; display: flex; flex-direction: column; align-items: center; gap: 40px; padding: 32px 24px; width: min(560px, 100%); }
+  .logo { margin: 0; white-space: nowrap; font-weight: 400; font-size: clamp(28px, 6.2vw, 92px); letter-spacing: .32em; margin-right: -.32em; line-height: 1; text-shadow: 0 0 24px rgba(0,0,0,.8); }
+  .story { display: flex; align-items: stretch; gap: 16px; width: 100%; padding: 10px; text-align: left; border: 1px solid var(--line); border-radius: 4px; background: rgba(11,10,9,.6); transition: border-color .2s, background .2s; }
+  .story:hover, .story[aria-pressed="true"] { border-color: rgba(224,169,94,.6); background: rgba(24,20,15,.72); }
+  .story img { width: 150px; aspect-ratio: 3 / 2; object-fit: cover; display: block; filter: sepia(.2); border-radius: 2px; }
+  .story .meta { display: flex; flex-direction: column; justify-content: center; gap: 4px; min-width: 0; }
+  .story .kick { font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .story .name { font-size: 24px; line-height: 1.2; }
+  .story .place { font-size: 15px; color: var(--muted); }
+  .menu-list { display: flex; flex-direction: column; align-items: center; gap: 4px; margin: 0; padding: 0; list-style: none; }
+  .mbtn { position: relative; min-width: 240px; min-height: 48px; padding: 8px 24px; font-size: 22px; letter-spacing: .08em; color: var(--muted); transition: color .2s; }
+  .mbtn::before, .mbtn::after { content: ""; position: absolute; top: 50%; width: 18px; height: 1px; background: var(--lamp); opacity: 0; transition: opacity .2s, transform .2s; }
+  .mbtn::before { left: 12px; transform: translateX(-6px); } .mbtn::after { right: 12px; transform: translateX(6px); }
+  .mbtn:hover, .mbtn:focus-visible { color: var(--paper); outline: none; }
+  .mbtn:hover::before, .mbtn:focus-visible::before, .mbtn:hover::after, .mbtn:focus-visible::after { opacity: 1; transform: none; }
+  .ver { position: absolute; right: 24px; bottom: 16px; font-size: 14px; color: var(--muted); }
+
+  /* ---------- dialogs ---------- */
+  .dlg { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(5,4,4,.78); z-index: 20; padding: 24px; }
+  .panel { width: min(520px, 100%); padding: 32px; border: 1px solid var(--line); border-radius: 4px; background: #12100d; display: flex; flex-direction: column; gap: 24px; }
+  .panel h2 { margin: 0; font-weight: 400; font-size: 26px; letter-spacing: .12em; text-transform: uppercase; }
+  .row { display: flex; flex-direction: column; gap: 8px; }
+  .row label, .row .lab { font-size: 16px; color: var(--muted); display: flex; justify-content: space-between; }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 4px; padding: 2px; }
+  .seg button { flex: 1; min-height: 44px; border-radius: 3px; color: var(--muted); }
+  .seg button[aria-pressed="true"] { background: rgba(224,169,94,.18); color: var(--paper); }
+  input[type=range] { width: 100%; accent-color: var(--lamp); height: 28px; }
+  .actions { display: flex; gap: 12px; justify-content: flex-end; }
+  .pbtn { min-height: 44px; min-width: 120px; padding: 0 20px; border: 1px solid var(--line); border-radius: 4px; }
+  .pbtn:hover { border-color: rgba(224,169,94,.6); }
+  .pbtn.main { border-color: rgba(224,169,94,.6); background: rgba(224,169,94,.14); }
+  .panel p { margin: 0; color: var(--muted); }
+
+  /* ---------- intro ---------- */
+  #intro { background: #000; cursor: none; }
+  #intro.cursor { cursor: default; }
+  .shot { position: absolute; inset: 0; opacity: 0; transition: opacity 1.6s ease; overflow: hidden; }
+  .shot.on { opacity: 1; }
+  .shot .kb { position: absolute; inset: 0; will-change: transform; }
+  .shot.full .kb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .shot.print .bg { position: absolute; inset: -6%; background-size: cover; background-position: center; filter: blur(22px) brightness(.32) sepia(.3); }
+  .shot.print .kb { display: grid; place-items: center; padding: 6vh 8vw 24vh; }
+  .shot.print .frame { max-width: 100%; max-height: 100%; padding: 10px; background: #d9ccb3; box-shadow: 0 18px 50px rgba(0,0,0,.65); transform: rotate(-.6deg); display: flex; }
+  .shot.print .frame img { display: block; max-width: calc(84vw - 20px); max-height: calc(70vh - 20px); object-fit: contain; }
+  .shade { position: absolute; inset: 0; pointer-events: none; background: linear-gradient(to top, rgba(0,0,0,.9) 0%, rgba(0,0,0,.74) 16%, rgba(0,0,0,.38) 30%, rgba(0,0,0,0) 48%); }
+  .dim { position: absolute; inset: 0; pointer-events: none; background: radial-gradient(ellipse at center, rgba(0,0,0,.62) 0%, rgba(0,0,0,.5) 50%, rgba(0,0,0,.35) 100%); opacity: 0; transition: opacity 2.4s ease; }
+  .dim.on { opacity: 1; }
+  #caption { position: absolute; left: 50%; bottom: 7vh; transform: translateX(-50%); width: min(1000px, calc(100% - 48px)); min-height: 3.2em; font: 400 clamp(17px, 1.55vw, 26px)/1.55 "Courier New", Courier, monospace; color: #efe6d4; text-shadow: 0 1px 2px #000, 0 0 18px rgba(0,0,0,.9); white-space: pre-line; transition: opacity .8s; }
+  #caption .cur, #daytext .cur { position: relative; display: inline-block; width: 0; height: 1em; vertical-align: -.12em; }
+  #caption .cur::after, #daytext .cur::after { content: ""; position: absolute; left: 2px; top: 0; width: .55em; height: 1.05em; background: rgba(239,230,212,.75); animation: blink 1s steps(1) infinite; }
+  .rest { color: transparent; text-shadow: none; }
+  @keyframes blink { 50% { opacity: 0; } }
+  #titlecard { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; opacity: 0; transition: opacity 2.4s ease; }
+  #titlecard span { font-size: clamp(36px, 6vw, 92px); letter-spacing: .3em; margin-right: -.3em; text-shadow: 0 0 30px #000, 0 2px 4px #000; transition: letter-spacing 6s ease-out; }
+  #titlecard.on { opacity: 1; } #titlecard.on span { letter-spacing: .4em; margin-right: -.4em; }
+  .ctl { position: absolute; right: 24px; top: 20px; display: flex; align-items: center; gap: 16px; padding: 6px 6px 6px 16px; border-radius: 4px; background: rgba(0,0,0,.62); opacity: 0; transition: opacity .6s; }
+  .ctl.on { opacity: 1; }
+  .ctl .hint { font: 14px/1.3 "Courier New", monospace; color: var(--muted); }
+  .ctl button { min-height: 44px; padding: 0 16px; border: 1px solid var(--line); border-radius: 4px; font-size: 16px; color: var(--muted); background: rgba(0,0,0,.5); position: relative; overflow: hidden; }
+  .ctl button i { position: absolute; left: 0; bottom: 0; height: 2px; width: 0; background: var(--lamp); }
+
+  /* ---------- day start ---------- */
+  #day { display: grid; place-items: center; background: #000; text-align: center; }
+  #day .inner { display: flex; flex-direction: column; align-items: center; gap: 32px; padding: 24px; }
+  #daytext { font: 400 clamp(22px, 2.4vw, 34px)/1.5 "Courier New", monospace; white-space: pre-line; min-height: 3em; }
+  #day .note { max-width: 520px; color: var(--muted); font-size: 16px; opacity: 0; transition: opacity 1s; }
+  #day .note.on { opacity: 1; }
+  #day .actions { justify-content: center; opacity: 0; transition: opacity 1s; }
+  #day .actions.on { opacity: 1; }
+
+  /* ---------- film overlay ---------- */
+  #grain { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; opacity: .09; mix-blend-mode: overlay; z-index: 10; }
+  .vig { position: fixed; inset: 0; pointer-events: none; z-index: 11; background: radial-gradient(ellipse at center, rgba(0,0,0,0) 55%, rgba(0,0,0,.55) 100%); }
+  #intro.flick .kb { animation: flick 7s infinite; }
+  @keyframes flick { 0%, 100% { filter: brightness(1); } 47% { filter: brightness(1); } 48% { filter: brightness(.94); } 49% { filter: brightness(1.02); } 50% { filter: brightness(.97); } 51% { filter: brightness(1); } }
+  #fade { position: fixed; inset: 0; background: #000; opacity: 0; pointer-events: none; transition: opacity 1.2s ease; z-index: 30; }
+  #fade.on { opacity: 1; pointer-events: all; }
+
+  @media (max-width: 560px) {
+    .menu-inner { gap: 32px; }
+    .story img { width: 104px; }
+    .story .name { font-size: 20px; }
+    .mbtn { font-size: 20px; }
+    .shot.print .kb { padding: 12vh 16px 30vh; }
+    .shot.print .frame img { max-width: calc(100vw - 52px); max-height: calc(58vh - 20px); }
+    .ctl .hint { display: none; }
+    #caption { bottom: 6vh; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #menu .bgimg, #intro.flick .kb, #caption .cur::after, #daytext .cur::after { animation: none; }
+    .shot { transition-duration: .6s; }
+  }
+</style>
+</head>
+<body>
+<canvas id="grain" aria-hidden="true"></canvas>
+<div class="vig" aria-hidden="true"></div>
+
+<section id="menu" class="screen" aria-label="Главное меню">
+  <div class="bgimg" style="background-image:url(__IMG_s1__)"></div>
+  <canvas id="snow" aria-hidden="true"></canvas>
+  <div class="menu-inner">
+    <h1 class="logo">BELIEVE IT</h1>
+    <button class="story" id="story" aria-pressed="true" aria-label="История «Следы на снегу», Верхняя Бавария, 1922">
+      <img src="__IMG_s8__" alt="">
+      <span class="meta"><span class="kick">История</span><span class="name">Следы на снегу</span><span class="place">Верхняя Бавария, 1922</span></span>
+    </button>
+    <ul class="menu-list">
+      <li><button class="mbtn" id="b-start">Начать</button></li>
+      <li><button class="mbtn" id="b-set">Настройки</button></li>
+      <li><button class="mbtn" id="b-exit">Выход</button></li>
+    </ul>
+  </div>
+  <div class="ver">демо · v1</div>
+</section>
+
+<div class="dlg" id="settings" role="dialog" aria-modal="true" aria-labelledby="set-h" hidden>
+  <div class="panel">
+    <h2 id="set-h">Настройки</h2>
+    <div class="row"><span class="lab">Графика</span>
+      <div class="seg" role="group" aria-label="Графика"><button data-gfx="enh">Улучшенная</button><button data-gfx="retro">Ретро</button></div></div>
+    <div class="row"><label for="vol">Громкость <span id="vol-v"></span></label><input type="range" id="vol" min="0" max="100" step="1"></div>
+    <div class="row"><label for="sens">Чувствительность мыши <span id="sens-v"></span></label><input type="range" id="sens" min="1" max="20" step="1"></div>
+    <div class="actions"><button class="pbtn main" id="set-ok">Готово</button></div>
+  </div>
+</div>
+
+<div class="dlg" id="exit" role="dialog" aria-modal="true" aria-labelledby="exit-h" hidden>
+  <div class="panel">
+    <h2 id="exit-h">Выйти из игры?</h2>
+    <p id="exit-p" hidden>Окно браузера не даёт закрыть себя из игры. Закройте вкладку вручную.</p>
+    <div class="actions"><button class="pbtn" id="exit-no">Остаться</button><button class="pbtn main" id="exit-yes">Выйти</button></div>
+  </div>
+</div>
+
+<section id="intro" class="screen flick" aria-label="Вступление" hidden>
+  <div id="shots"></div>
+  <div class="shade"></div>
+  <div class="dim" id="dim"></div>
+  <div id="caption" aria-live="polite"></div>
+  <div id="titlecard"><span>СЛЕДЫ НА СНЕГУ</span></div>
+  <div class="ctl" id="ctl"><span class="hint">Пробел — дальше · Esc (удерживать) — пропустить</span><button id="skip">Пропустить<i></i></button></div>
+</section>
+
+<section id="day" class="screen" aria-label="Начало игры" hidden>
+  <div class="inner">
+    <div id="daytext" aria-live="polite"></div>
+    <p class="note" id="daynote">Здесь начинается игра: День 1, утро на хуторе. В этой сборке пока только меню и вступление.</p>
+    <div class="actions" id="dayact"><button class="pbtn" id="d-again">Вступление ещё раз</button><button class="pbtn main" id="d-menu">В главное меню</button></div>
+  </div>
+</section>
+
+<div id="fade"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = (s) => document.querySelector(s);
+const Q = new URLSearchParams(location.search);
+const QA = Q.get('qa');
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/* ================= slides (texts approved in scenario v2) ================= */
+const IMG = { s1: '__IMG_s1__', s3: '__IMG_s3__', s4: '__IMG_s4__', s5: '__IMG_s5__', s6: '__IMG_s6__', s7: '__IMG_s7__', s8: '__IMG_s8__',
+  realYard: '__IMG_real_hof_1922__', realHouse: '__IMG_real_hof_before1922__' };
+// kb: [scaleFrom, xFrom%, yFrom%, scaleTo, xTo%, yTo%]
+const SLIDES = [
+  { text: 'Верхняя Бавария. Март 1922 года.\nВ семидесяти километрах к северу от Мюнхена, у самой кромки леса, стоит хутор Хинтеркайфек.',
+    shots: [{ src: IMG.s1, kb: [1.02, 0, 0, 1.16, -3, -2] }] },
+  { text: 'Дом, хлев и сеновал под одной крышей. До соседей — через поле. Ближайшая деревня почти не видна за лесом.',
+    // real photographs: police photo of the yard, 5 Apr 1922 (A. Biegleder); the house before 1922 (unknown author). Both public domain.
+    shots: [{ src: IMG.realYard, print: true, kb: [1.0, 0, 0, 1.05, 0, -1] }, { src: IMG.realHouse, print: true, kb: [1.0, 0, 0, 1.05, 0, 0] }] },
+  { text: 'Здесь живут Андреас Грубер и его жена Цецилия.', shots: [{ src: IMG.s3, kb: [1.12, 0, -2, 1.02, 0, 0] }] },
+  { text: 'Их дочь Виктория овдовела в 1914-м: муж не вернулся с войны. С ней двое детей — семилетняя Цецилия и маленький Йозеф.',
+    shots: [{ src: IMG.s4, kb: [1.02, 0, 0, 1.13, 2, 0] }] },
+  { text: 'Хутор живёт замкнуто. В деревне о Груберах говорят неохотно.', shots: [{ src: IMG.s5, kb: [1.03, 2, 0, 1.13, -2, -1] }] },
+  { text: 'Осень 1921 года. Служанка уходит с хутора. Она говорит, что в доме нечисто: по ночам на чердаке кто-то ходит и слышны голоса.',
+    shots: [{ src: IMG.s6, kb: [1.14, 0, 2, 1.03, 0, 0] }] },
+  { text: 'Полгода на хуторе нет работницы. Никто больше не жалуется на шум.', shots: [{ src: IMG.s7, kb: [1.03, 0, 0, 1.18, -2, 3] }] },
+  { text: 'Конец марта 1922 года. Снег ещё лежит.', title: true, shots: [{ src: IMG.s8, kb: [1.03, 0, 2, 1.15, -3, -2] }] },
+];
+
+/* ================= settings ================= */
+const SET = { vol: 80, sens: 10, gfx: 'enh' };
+try { const s = JSON.parse(localStorage.getItem('believeit.settings') || '{}'); Object.assign(SET, s); SET.gfx = localStorage.getItem('believeit.gfx') || SET.gfx; } catch (e) { /* private mode */ }
+function saveSet() { try { localStorage.setItem('believeit.settings', JSON.stringify({ vol: SET.vol, sens: SET.sens })); localStorage.setItem('believeit.gfx', SET.gfx); } catch (e) { /* ignore */ } }
+
+/* ================= audio (procedural: wind, clock, typewriter) ================= */
+const A = { ctx: null };
+function audioInit() {
+  if (A.ctx) { if (A.ctx.state === 'suspended') A.ctx.resume(); return; }
+  const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+  const ctx = A.ctx = new AC();
+  const master = A.master = ctx.createGain(); master.gain.value = SET.vol / 100; master.connect(ctx.destination);
+  const len = ctx.sampleRate * 6, buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+  let last = 0; for (let i = 0; i < len; i++) { const w = Math.random() * 2 - 1; last = (last + 0.02 * w) / 1.02; d[i] = last * 3.5; }
+  const wbuf = ctx.createBuffer(1, ctx.sampleRate, ctx.sampleRate), wd = wbuf.getChannelData(0); for (let i = 0; i < wd.length; i++) wd[i] = Math.random() * 2 - 1;
+  A.white = wbuf;
+  // wind: low rumble + howl, both slowly modulated
+  const windBus = A.wind = ctx.createGain(); windBus.gain.value = 0; windBus.connect(master);
+  const mk = (f, q, g, lfoF, lfoD, gl) => {
+    const s = ctx.createBufferSource(); s.buffer = buf; s.loop = true; s.loopStart = Math.random();
+    const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q;
+    const gn = ctx.createGain(); gn.gain.value = g;
+    const o = ctx.createOscillator(); o.frequency.value = lfoF; const od = ctx.createGain(); od.gain.value = lfoD; o.connect(od).connect(bp.frequency);
+    const o2 = ctx.createOscillator(); o2.frequency.value = lfoF * 0.63; const od2 = ctx.createGain(); od2.gain.value = gl; o2.connect(od2).connect(gn.gain);
+    s.connect(bp).connect(gn).connect(windBus); s.start(); o.start(); o2.start();
+  };
+  mk(320, 0.6, 0.9, 0.05, 160, 0.35);
+  mk(760, 4.5, 0.22, 0.083, 260, 0.14);
+  mk(1500, 9, 0.05, 0.11, 400, 0.04);
+  A.clock = ctx.createGain(); A.clock.gain.value = 0; A.clock.connect(master);
+  A.keys = ctx.createGain(); A.keys.gain.value = 0.55; A.keys.connect(master);
+  A.nextTick = ctx.currentTime + 0.2; A.tock = false;
+  setInterval(() => { while (A.nextTick < ctx.currentTime + 0.3) { tick(A.nextTick, A.tock); A.tock = !A.tock; A.nextTick += 1; } }, 100);
+}
+function burst(t, dur, f, q, gain, dest) {
+  const ctx = A.ctx, s = ctx.createBufferSource(); s.buffer = A.white; s.playbackRate.value = 0.9 + Math.random() * 0.2;
+  const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = f; bp.Q.value = q;
+  const g = ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(gain, t + 0.002); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+  s.connect(bp).connect(g).connect(dest); s.start(t, Math.random() * 0.5); s.stop(t + dur + 0.02);
+}
+function tick(t, tock) { burst(t, 0.035, tock ? 1700 : 2400, 6, 0.7, A.clock); burst(t + 0.004, 0.08, tock ? 420 : 520, 3, 0.25, A.clock); }
+function keySound() {
+  if (!A.ctx) return; const t = A.ctx.currentTime + 0.005;
+  burst(t, 0.03 + Math.random() * 0.02, 2600 + Math.random() * 1400, 1.4, 0.35 + Math.random() * 0.25, A.keys);
+  burst(t + 0.006, 0.06, 260 + Math.random() * 80, 2, 0.32, A.keys);
+}
+function bell() { if (!A.ctx) return; const ctx = A.ctx, t = ctx.currentTime; [1, 2.76].forEach((m, i) => { const o = ctx.createOscillator(), g = ctx.createGain(); o.frequency.value = 1650 * m; g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(i ? 0.03 : 0.08, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 1.4); o.connect(g).connect(A.master); o.start(t); o.stop(t + 1.5); }); }
+function ramp(node, v, sec) { if (!A.ctx || !node) return; const p = node.gain, t = A.ctx.currentTime; p.cancelScheduledValues(t); p.setValueAtTime(p.value, t); p.linearRampToValueAtTime(v, t + sec); }
+const unlock = () => { audioInit(); if (S.screen === 'menu') ramp(A.wind, 0.55, 3); };
+addEventListener('pointerdown', unlock, { once: true }); addEventListener('keydown', unlock, { once: true });
+
+/* ================= film grain ================= */
+const gc = $('#grain'), gx = gc.getContext('2d'); gc.width = 640; gc.height = 360;
+const gimg = gx.createImageData(640, 360);
+function grain() { const d = gimg.data; for (let i = 0; i < d.length; i += 4) { const v = (Math.random() * 255) | 0; d[i] = d[i + 1] = d[i + 2] = v; d[i + 3] = 255; } gx.putImageData(gimg, 0, 0); }
+grain(); if (!reduced && !QA) setInterval(grain, 1000 / 18);
+
+/* ================= snow (menu) ================= */
+const sc = $('#snow'), sx = sc.getContext('2d'); let flakes = [];
+function snowSize() { const r = Math.min(devicePixelRatio || 1, 2); sc.width = innerWidth * r; sc.height = innerHeight * r; sx.setTransform(r, 0, 0, r, 0, 0);
+  const n = reduced ? 40 : Math.round(innerWidth * innerHeight / 9000);
+  flakes = Array.from({ length: n }, () => ({ x: Math.random() * innerWidth, y: Math.random() * innerHeight, r: 0.5 + Math.random() * 1.6, v: 12 + Math.random() * 30, ph: Math.random() * 6.28 })); }
+snowSize(); addEventListener('resize', snowSize);
+let lastT = performance.now();
+function snow(t) { const dt = Math.min(0.05, (t - lastT) / 1000); lastT = t;
+  if (S.screen === 'menu') { sx.clearRect(0, 0, innerWidth, innerHeight); sx.fillStyle = 'rgba(235,226,209,.55)';
+    for (const f of flakes) { if (!reduced && !QA) { f.y += f.v * dt; f.x += Math.sin(t / 1400 + f.ph) * 8 * dt - 6 * dt; if (f.y > innerHeight + 4) { f.y = -4; f.x = Math.random() * innerWidth; } if (f.x < -4) f.x = innerWidth + 4; }
+      sx.beginPath(); sx.arc(f.x, f.y, f.r, 0, 6.283); sx.fill(); } }
+  requestAnimationFrame(snow); }
+requestAnimationFrame(snow);
+
+/* ================= screens ================= */
+const S = { screen: 'menu', run: 0 };
+const fade = $('#fade');
+async function go(screen, ms = 1200) {
+  fade.style.transitionDuration = ms + 'ms'; fade.classList.add('on'); await sleep(ms);
+  ['menu', 'intro', 'day'].forEach((id) => { $('#' + id).hidden = id !== screen; });
+  S.screen = screen; fade.classList.remove('on');
+}
+
+/* ---- menu ---- */
+const mbtns = [...document.querySelectorAll('.mbtn')];
+$('#b-start').addEventListener('click', startIntro);
+$('#story').addEventListener('click', () => $('#b-start').focus());
+$('#b-set').addEventListener('click', () => openDlg('#settings'));
+$('#b-exit').addEventListener('click', () => { $('#exit-p').hidden = true; $('#exit-yes').hidden = false; $('#exit-no').textContent = 'Остаться'; openDlg('#exit'); });
+$('#menu').addEventListener('keydown', (e) => {
+  const i = mbtns.indexOf(document.activeElement);
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { const j = i < 0 ? 0 : (i + (e.key === 'ArrowDown' ? 1 : mbtns.length - 1)) % mbtns.length; mbtns[j].focus(); e.preventDefault(); }
+});
+let dlgBack = null;
+function openDlg(sel) { dlgBack = document.activeElement; const d = $(sel); d.hidden = false; const f = d.querySelector('button.main') || d.querySelector('button'); if (sel === '#settings') d.querySelector('.seg button').focus(); else f.focus(); }
+function closeDlg(sel) { $(sel).hidden = true; if (dlgBack) dlgBack.focus(); }
+document.querySelectorAll('.dlg').forEach((d) => d.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { closeDlg('#' + d.id); e.stopPropagation(); }
+  if (e.key === 'Tab') { const f = [...d.querySelectorAll('button:not([hidden]), input')]; const a = f[0], z = f[f.length - 1];
+    if (e.shiftKey && document.activeElement === a) { z.focus(); e.preventDefault(); } else if (!e.shiftKey && document.activeElement === z) { a.focus(); e.preventDefault(); } }
+}));
+// settings
+const gfxBtns = [...document.querySelectorAll('[data-gfx]')];
+function syncSet() { gfxBtns.forEach((b) => b.setAttribute('aria-pressed', b.dataset.gfx === SET.gfx)); $('#vol').value = SET.vol; $('#vol-v').textContent = SET.vol + '%'; $('#sens').value = SET.sens; $('#sens-v').textContent = (SET.sens / 10).toFixed(1); if (A.master) A.master.gain.value = SET.vol / 100; }
+gfxBtns.forEach((b) => b.addEventListener('click', () => { SET.gfx = b.dataset.gfx; syncSet(); saveSet(); }));
+$('#vol').addEventListener('input', (e) => { SET.vol = +e.target.value; syncSet(); saveSet(); });
+$('#sens').addEventListener('input', (e) => { SET.sens = +e.target.value; syncSet(); saveSet(); });
+$('#set-ok').addEventListener('click', () => closeDlg('#settings'));
+syncSet();
+// exit
+$('#exit-no').addEventListener('click', () => { closeDlg('#exit'); ramp(A.wind, 0.55, 1.5); });
+$('#exit-yes').addEventListener('click', async () => { ramp(A.wind, 0, 0.8); window.close(); await sleep(400); $('#exit-p').hidden = false; $('#exit-yes').hidden = true; $('#exit-no').textContent = 'Вернуться в меню'; $('#exit-no').focus(); });
+
+/* ---- intro ---- */
+const dim = $('#dim'), shotsEl = $('#shots'), cap = $('#caption'), tcard = $('#titlecard'), ctl = $('#ctl'), skipBtn = $('#skip');
+function makeShot(sh) {
+  const el = document.createElement('div'); el.className = 'shot ' + (sh.print ? 'print' : 'full');
+  el.innerHTML = sh.print ? `<div class="bg" style="background-image:url(${sh.src})"></div><div class="kb"><div class="frame"><img alt="" src="${sh.src}"></div></div>` : `<div class="kb"><img alt="" src="${sh.src}"></div>`;
+  shotsEl.appendChild(el); return el;
+}
+function showShot(sh, dur, still) {
+  const el = makeShot(sh), kb = el.querySelector('.kb'), [s0, x0, y0, s1, x1, y1] = sh.kb;
+  const tf = (s, x, y) => `translate(${x}%, ${y}%) scale(${s})`;
+  if (reduced || still) kb.style.transform = tf((s0 + s1) / 2, (x0 + x1) / 2, (y0 + y1) / 2);
+  else kb.animate([{ transform: tf(s0, x0, y0) }, { transform: tf(s1, x1, y1) }], { duration: dur, easing: 'linear', fill: 'forwards' });
+  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('on')));
+  [...shotsEl.children].slice(0, -1).forEach((o) => { o.classList.remove('on'); setTimeout(() => o.remove(), 1800); });
+  if (still) el.classList.add('on');
+}
+let typing = null; // { done, finish() }
+// keep short words and dashes on the same line as the next/previous word (Russian typography)
+const nb = (t) => t.replace(/(^|[\s«(])([А-Яа-яЁёA-Za-z]{1,2})\s/g, '$1$2\u00a0').replace(/(^|[\s«(])([А-Яа-яЁёA-Za-z]{1,2})\s/g, '$1$2\u00a0').replace(/\s—/g, '\u00a0—').replace(/(\d)-(\p{L})/gu, '$1-\u2060$2');
+function typeText(el, text, run, opts = {}) {
+  text = nb(text); let i = 0, fin = false; el.innerHTML = '';
+  const span = document.createElement('span'), cur = document.createElement('span'), rest = document.createElement('span');
+  cur.className = 'cur'; rest.className = 'rest'; rest.setAttribute('aria-hidden', 'true'); el.append(span, cur, rest); rest.textContent = text;
+  return new Promise((res) => {
+    const t = { done: false, finish: () => { fin = true; } }; typing = t;
+    (async () => {
+      while (i < text.length) {
+        if (fin || run !== S.run) break;
+        const ch = text[i++]; span.textContent = text.slice(0, i); rest.textContent = text.slice(i);
+        if (ch !== ' ' && ch !== '\n' && ch !== '\u00a0') keySound();
+        await sleep((opts.speed || 42) * (0.75 + Math.random() * 0.5) + ('.:;'.includes(ch) ? 260 : ',—'.includes(ch) ? 140 : ch === '\n' ? 420 : 0));
+      }
+      span.textContent = text; rest.textContent = ''; t.done = true; if (typing === t) typing = null; if (run === S.run) bell(); res();
+    })();
+  });
+}
+let advance = null; // resolves wait between slides
+function waitOrAdvance(ms, run) { return new Promise((res) => { const id = setTimeout(done, ms); function done() { clearTimeout(id); advance = null; res(); } advance = done; if (run !== S.run) done(); }); }
+function next() { if (typing && !typing.done) typing.finish(); else if (advance) advance(); }
+async function startIntro() {
+  audioInit(); const run = ++S.run;
+  ramp(A.wind, 0.18, 1.2);
+  await go('intro', 1400); if (run !== S.run) return;
+  ramp(A.wind, 0.32, 3); ramp(A.clock, 0.22, 2);
+  shotsEl.innerHTML = ''; cap.innerHTML = ''; cap.style.opacity = 1; tcard.classList.remove('on'); dim.classList.remove('on');
+  await sleep(600);
+  for (let n = 0; n < SLIDES.length; n++) {
+    if (run !== S.run) return;
+    const sl = SLIDES[n], est = sl.text.length * 46 + 4200, perShot = Math.max(est / sl.shots.length, 5600), minHold = sl.text.length * 22 + 2600;
+    let shown = 0, shotT = 0;
+    const show = () => { showShot(sl.shots[shown], Math.max(perShot, est) + 6000); shown++; shotT = performance.now(); };
+    show(); cap.style.opacity = 1;
+    await sleep(900); if (run !== S.run) return;
+    const typed = typeText(cap, sl.text, run);
+    // extra photos inside one slide: on a timer, or earlier with Space/click once the text is typed
+    while (shown < sl.shots.length) { await waitOrAdvance(perShot - (performance.now() - shotT), run); if (run !== S.run) return; show(); }
+    await typed; if (run !== S.run) return;
+    await waitOrAdvance(Math.max(minHold, perShot - (performance.now() - shotT)), run); if (run !== S.run) return;
+    if (sl.title) { await titleCard(run); return; }
+    cap.style.opacity = 0; await sleep(700);
+  }
+}
+async function titleCard(run) {
+  ramp(A.clock, 0, 1.5); cap.style.opacity = 0; await sleep(1200); if (run !== S.run) return;
+  ramp(A.wind, 0.75, 3); dim.classList.add('on'); tcard.classList.add('on');
+  await waitOrAdvance(6500, run); if (run !== S.run) return;
+  toDay(run);
+}
+async function toDay(run) {
+  ramp(A.wind, 0.12, 2); ramp(A.clock, 0, 0.5);
+  await go('day', 2200); if (run !== S.run) return;
+  $('#daynote').classList.remove('on'); $('#dayact').classList.remove('on');
+  await sleep(700); await typeText($('#daytext'), 'День 1\n29 марта 1922 года, утро', run, { speed: 70 });
+  if (run !== S.run) return; await sleep(1200); $('#daynote').classList.add('on'); $('#dayact').classList.add('on'); $('#d-menu').focus();
+}
+function skipIntro() { if (S.screen !== 'intro') return; const run = ++S.run; typing = null; advance = null; toDay(run); }
+// input during intro
+let ctlTimer = 0;
+function showCtl() { ctl.classList.add('on'); $('#intro').classList.add('cursor'); clearTimeout(ctlTimer); ctlTimer = setTimeout(() => { ctl.classList.remove('on'); $('#intro').classList.remove('cursor'); }, 2600); }
+$('#intro').addEventListener('pointermove', showCtl);
+$('#intro').addEventListener('pointerdown', (e) => { showCtl(); if (!e.target.closest('#skip')) next(); });
+skipBtn.addEventListener('click', skipIntro);
+let escT = 0, escRaf = 0;
+addEventListener('keydown', (e) => {
+  if (S.screen !== 'intro' || e.repeat) return;
+  if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); showCtl(); next(); }
+  if (e.key === 'Escape') { showCtl(); escT = performance.now(); const bar = skipBtn.querySelector('i');
+    const loop = () => { const k = Math.min(1, (performance.now() - escT) / 900); bar.style.width = k * 100 + '%'; if (k >= 1) { bar.style.width = 0; skipIntro(); return; } escRaf = requestAnimationFrame(loop); }; loop(); }
+});
+addEventListener('keyup', (e) => { if (e.key === 'Escape') { cancelAnimationFrame(escRaf); skipBtn.querySelector('i').style.width = 0; } });
+// day screen
+$('#d-menu').addEventListener('click', async () => { S.run++; await go('menu', 1200); ramp(A.wind, 0.55, 2); $('#b-start').focus(); });
+$('#d-again').addEventListener('click', startIntro);
+
+/* ================= QA hooks (?qa=menu|settings|exit|slide&n=..&shot=..|title|day) ================= */
+if (QA) {
+  document.querySelectorAll('.shot, #titlecard, .note, #day .actions, #fade').forEach((e) => { e.style.transition = 'none'; });
+  const show = (id) => ['menu', 'intro', 'day'].forEach((x) => { $('#' + x).hidden = x !== id; S.screen = id; });
+  if (QA === 'settings') openDlg('#settings');
+  if (QA === 'exit') openDlg('#exit');
+  if (QA === 'slide' || QA === 'title') {
+    show('intro'); const n = QA === 'title' ? SLIDES.length - 1 : +(Q.get('n') || 1) - 1, sl = SLIDES[n], sh = sl.shots[+(Q.get('shot') || 0)];
+    const el = makeShot(sh); el.style.transition = 'none'; el.classList.add('on'); el.querySelector('.kb').style.transform = `scale(${sh.kb[0]})`;
+    if (QA === 'title') { cap.style.opacity = 0; dim.style.transition = 'none'; dim.classList.add('on'); tcard.style.transition = 'none'; tcard.classList.add('on'); tcard.querySelector('span').style.transition = 'none'; }
+    else { cap.textContent = nb(sl.text); cap.insertAdjacentHTML('beforeend', '<span class="cur"></span>'); }
+    if (Q.has('ctl')) ctl.classList.add('on');
+  }
+  if (QA === 'day') { show('day'); $('#daytext').textContent = 'День 1\n29 марта 1922 года, утро'; $('#daynote').classList.add('on'); $('#dayact').classList.add('on'); }
+}
+})();
+</script>
+</body>
+</html>

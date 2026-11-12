@@ -1,0 +1,16 @@
+{
+  "character": "Caecilia Gruber",
+  "concept": "caecilia_gruber_concept_v01.png",
+  "receivedOn": "2026-11-08",
+  "approvedOn": "2026-11-08",
+  "timezone": "Europe/Moscow",
+  "sha256": "998dfc1b8e9fd9e2a76527e804faf532dc21404242570a6a5f317756949fe7a7",
+  "bytes": 2822727,
+  "width": 1672,
+  "height": 941,
+  "source": "User-supplied image generated outside this chat; provider and exact submitted prompt not confirmed.",
+  "userApproval": "Да, делаем модель по нему",
+  "approvalQuestion": "Утверждаешь этот концепт Цецилии Грубер для модели — с этим лицом, силуэтом и одеждой?",
+  "scope": "Create the model preserving the approved face, silhouette and clothing. Does not authorize story events or day 1.",
+  "apiGenerationAuthorized": false
+}

@@ -1,0 +1,113 @@
+{
+  "source": "assets/concepts/characters/caecilia_gruber_concept_v01.png",
+  "sourceSHA256": "998dfc1b8e9fd9e2a76527e804faf532dc21404242570a6a5f317756949fe7a7",
+  "materials": {
+    "wool": {
+      "crop": [
+        733,
+        549,
+        778,
+        650
+      ],
+      "tile": 0.19,
+      "normal": 2.2,
+      "roughness": 0.94,
+      "albedo": "wool.png",
+      "nmap": "wool_normal.png"
+    },
+    "linen": {
+      "crop": [
+        137,
+        421,
+        288,
+        671
+      ],
+      "tile": 0.32,
+      "normal": 1.8,
+      "roughness": 0.9,
+      "albedo": "linen.png",
+      "nmap": "linen_normal.png"
+    },
+    "kerchief": {
+      "crop": [
+        746,
+        62,
+        789,
+        139
+      ],
+      "tile": 0.2,
+      "normal": 1.2,
+      "roughness": 0.92,
+      "albedo": "kerchief.png",
+      "nmap": "kerchief_normal.png"
+    },
+    "leather": {
+      "crop": [
+        1545,
+        626,
+        1590,
+        665
+      ],
+      "tile": 0.16,
+      "normal": 0.8,
+      "roughness": 0.82,
+      "albedo": "leather.png",
+      "nmap": "leather_normal.png"
+    },
+    "hair": {
+      "crop": [
+        1154,
+        53,
+        1276,
+        121
+      ],
+      "tile": 0.12,
+      "normal": 1.25,
+      "roughness": 0.86,
+      "albedo": "hair.png",
+      "nmap": "hair_normal.png"
+    },
+    "yarn": {
+      "crop": [
+        1480,
+        774,
+        1623,
+        891
+      ],
+      "tile": 0.06,
+      "normal": 1.1,
+      "roughness": 0.95,
+      "albedo": "yarn.png",
+      "nmap": "yarn_normal.png"
+    },
+    "face": {
+      "albedo": "face.png",
+      "nmap": "face_normal.png",
+      "roughness": 0.82,
+      "projection": {
+        "type": "cylindrical",
+        "a": [
+          -1.7,
+          1.7
+        ],
+        "y": [
+          1.3,
+          1.585
+        ]
+      },
+      "source": "procedural, tools/caecilia_face_tex.mjs"
+    },
+    "skin": {
+      "albedo": "skin.png",
+      "nmap": "skin_normal.png",
+      "roughness": 0.88,
+      "tile": 0.12
+    },
+    "eye": {
+      "albedo": "eye.png",
+      "nmap": "eye_normal.png",
+      "roughness": 0.18,
+      "source": "procedural, tools/caecilia_face_tex.mjs"
+    }
+  }
+}

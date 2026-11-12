@@ -1,0 +1,15 @@
+{
+  "character": "Caecilia Gabriel",
+  "age": 7,
+  "concept": "caecilia_gabriel_concept_v01.png",
+  "receivedOn": "2026-11-11",
+  "approvedOn": "2026-11-11",
+  "timezone": "Europe/Moscow",
+  "sha256": "8527e2cf6b6558999c6320e5da0341da5fd625939b4161b8c4d33ee612f3ded3",
+  "bytes": 2578498,
+  "width": 1536,
+  "height": 1024,
+  "userApproval": "Вот все сделано, сделай максимальо похожим на концепт",
+  "scope": "Static 3D model matching supplied image; final model not yet approved",
+  "interpretation": "Use illustrated silhouette where printed dimensions conflict; height with boots 122 cm"
+}

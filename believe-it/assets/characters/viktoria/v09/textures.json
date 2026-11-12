@@ -1,0 +1,154 @@
+{
+  "source": "assets/characters/viktoria/v05/ref/concept_gemini.png",
+  "sourceSHA256": "b91a8bd49d46eae8157db521cc8fca7e196d1fb698a4034beef2a49fee3a9358",
+  "materials": {
+    "wool": {
+      "crop": [
+        640,
+        560,
+        700,
+        640
+      ],
+      "tile": 0.19,
+      "normal": 2.2,
+      "roughness": 0.94,
+      "albedo": "wool.png",
+      "nmap": "wool_normal.png"
+    },
+    "blouse": {
+      "crop": [
+        610,
+        240,
+        640,
+        320
+      ],
+      "tile": 0.16,
+      "normal": 1.4,
+      "roughness": 0.9,
+      "albedo": "blouse.png",
+      "nmap": "blouse_normal.png"
+    },
+    "knit": {
+      "crop": [
+        680,
+        200,
+        760,
+        300
+      ],
+      "tile": 0.1,
+      "normal": 2.4,
+      "roughness": 0.95,
+      "albedo": "knit.png",
+      "nmap": "knit_normal.png"
+    },
+    "linen": {
+      "crop": [
+        120,
+        420,
+        280,
+        560
+      ],
+      "tile": 0.32,
+      "normal": 1.8,
+      "roughness": 0.9,
+      "albedo": "linen.png",
+      "nmap": "linen_normal.png"
+    },
+    "kerchief": {
+      "crop": [
+        1330,
+        60,
+        1450,
+        150
+      ],
+      "tile": 0.14,
+      "normal": 1.2,
+      "roughness": 0.92,
+      "albedo": "kerchief.png",
+      "nmap": "kerchief_normal.png"
+    },
+    "leather": {
+      "crop": [
+        1060,
+        900,
+        1100,
+        940
+      ],
+      "tile": 0.16,
+      "normal": 0.8,
+      "roughness": 0.82,
+      "albedo": "leather.png",
+      "nmap": "leather_normal.png"
+    },
+    "hair": {
+      "crop": [
+        1300,
+        640,
+        1360,
+        700
+      ],
+      "tile": 0.12,
+      "normal": 1.25,
+      "roughness": 0.86,
+      "albedo": "hair.png",
+      "nmap": "hair_normal.png"
+    },
+    "stocking": {
+      "crop": [
+        120,
+        820,
+        150,
+        860
+      ],
+      "tile": 0.08,
+      "normal": 1.6,
+      "roughness": 0.93,
+      "albedo": "stocking.png",
+      "nmap": "stocking_normal.png"
+    },
+    "face": {
+      "albedo": "face.png",
+      "nmap": "face_normal.png",
+      "roughness": 0.9,
+      "projection": {
+        "type": "cylindrical",
+        "a": [
+          -3.141592653589793,
+          3.141592653589793
+        ],
+        "y": [
+          1.275,
+          1.585
+        ]
+      },
+      "source": "tools/viktoria_face_tex.mjs"
+    },
+    "eye": {
+      "albedo": "eye.png",
+      "nmap": "eye_normal.png",
+      "roughness": 0.18
+    },
+    "skin": {
+      "albedo": "skin.png",
+      "nmap": "skin_normal.png",
+      "roughness": 0.88,
+      "tile": 0.12
+    },
+    "ear": {
+      "albedo": "ear.png",
+      "nmap": "ear_normal.png",
+      "roughness": 0.88,
+      "crop": [
+        1344,
+        180,
+        1415,
+        278
+      ]
+    },
+    "hair-scalp": {
+      "albedo": "hair_scalp.png",
+      "nmap": "hair_scalp_normal.png",
+      "roughness": 0.94
+    }
+  }
+}

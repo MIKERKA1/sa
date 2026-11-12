@@ -1,0 +1,22 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Believe It — Виктория Габриэль</title>
+<style>
+:root{color-scheme:dark;--bg:#191919;--panel:#202020;--line:rgba(255,255,255,.2);--text:#eee;--muted:#aaa;--accent:#5e9fe8}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font:14px/1.35 system-ui,-apple-system,"Segoe UI",sans-serif}body{display:flex;flex-direction:column;overflow:hidden}
+header,footer{background:var(--panel);padding:10px 14px;display:flex;align-items:center;gap:8px 14px;flex-wrap:wrap}header{border-bottom:1px solid var(--line)}footer{border-top:1px solid var(--line)}.title{margin-right:auto}.title b{font-size:15px}.title small{display:block;color:var(--muted)}
+button{font:inherit;min-height:42px;padding:0 13px;background:#2a2a2a;color:var(--text);border:1px solid var(--line);border-radius:8px;cursor:pointer;white-space:nowrap}button:hover{background:#363636}button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}button[aria-pressed=true]{border-color:var(--accent);background:#23364b}
+main{display:flex;flex:1;min-height:0}#stage{position:relative;flex:1;min-width:0;touch-action:none;outline-offset:-3px}#c{width:100%;height:100%;display:block}#loading{position:absolute;inset:0;display:grid;place-items:center;background:#191919;z-index:1}#loading[hidden]{display:none}#reference{width:48%;margin:0;border-left:1px solid var(--line);display:flex;flex-direction:column;justify-content:center;padding:12px;background:#292929}#reference[hidden]{display:none}#reference img{width:100%;height:auto;object-fit:contain;max-height:90%}figcaption{color:var(--muted);font-size:12px;margin-top:10px}
+.views{display:flex;gap:6px;flex-wrap:wrap}.hint{width:100%;font-size:12px;color:var(--muted)}#stats{margin-left:auto;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}a{color:#9dc4ee}
+@media(max-width:700px){header{padding:7px 10px}.title small{display:none}button{min-height:40px;padding:0 10px}footer{padding:8px 10px;gap:7px}.views{flex-wrap:nowrap;overflow:auto;max-width:100%;padding-bottom:4px}main{position:relative}#reference{position:absolute;right:8px;bottom:8px;width:64%;max-height:42%;border:1px solid var(--line);border-radius:6px;pointer-events:none}#stats{margin-left:0}figcaption{margin-top:4px}}
+</style>
+</head>
+<body>
+<header><div class="title"><b>Believe It · Виктория Габриэль</b><small>Рабочая модель · v12</small></div><button id="gfx" aria-pressed="true">Улучшенная графика</button><button id="concept" aria-pressed="false">Концепт рядом</button><button id="download">Скачать GLB</button></header>
+<main><div id="stage" tabindex="0" aria-label="3D-модель Виктории. Перетаскивание — поворот, колесо — масштаб"><canvas id="c"></canvas><div id="loading" role="status">Загружаем модель…</div></div><figure id="reference" hidden><img id="concept-image" alt="Утверждённый концепт Виктории: три вида, портрет и детали одежды"><figcaption>Ваш референс внешности и одежды</figcaption></figure></main>
+<footer><div class="views" aria-label="Ракурсы"><button data-view="front" aria-pressed="true">Спереди</button><button data-view="side" aria-pressed="false">Профиль</button><button data-view="back" aria-pressed="false">Сзади</button><button data-view="face" aria-pressed="false">Лицо</button><button data-view="shawl" aria-pressed="false">Жилет</button><button data-view="boots" aria-pressed="false">Обувь</button></div><button id="spin" aria-pressed="false">Вращать</button><button id="wire" aria-pressed="false">Сетка</button><span id="stats"></span><div class="hint">Перетаскивание — поворот · колесо или щипок — масштаб · правая кнопка — сдвиг · стрелки — поворот</div></footer>
+<script type="module">/*__BUNDLE__*/</script>
+</body></html>
