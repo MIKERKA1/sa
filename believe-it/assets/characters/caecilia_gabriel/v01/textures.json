@@ -1,0 +1,80 @@
+{
+  "sourceSHA256": "8527e2cf6b6558999c6320e5da0341da5fd625939b4161b8c4d33ee612f3ded3",
+  "source": "assets\\concepts\\characters\\caecilia_gabriel_concept_v01.png",
+  "materials": {
+    "wool": {
+      "albedo": "wool.png",
+      "nmap": "wool_normal.png",
+      "roughness": 0.86
+    },
+    "linen": {
+      "albedo": "linen.png",
+      "nmap": "linen_normal.png",
+      "roughness": 0.92
+    },
+    "collar": {
+      "albedo": "collar.png",
+      "nmap": "collar_normal.png",
+      "roughness": 0.94
+    },
+    "stocking": {
+      "albedo": "stocking.png",
+      "nmap": "stocking_normal.png",
+      "roughness": 0.9
+    },
+    "leather": {
+      "albedo": "leather.png",
+      "nmap": "leather_normal.png",
+      "roughness": 0.74
+    },
+    "hair": {
+      "albedo": "hair.png",
+      "nmap": "hair_normal.png",
+      "roughness": 0.84
+    },
+    "skin": {
+      "albedo": "skin.png",
+      "nmap": "skin_normal.png",
+      "roughness": 0.85
+    },
+    "patch": {
+      "albedo": "patch.png",
+      "nmap": "patch_normal.png",
+      "roughness": 0.91
+    },
+    "face": {
+      "albedo": "face.png",
+      "nmap": "face_normal.png",
+      "roughness": 0.83
+    },
+    "hair-scalp": {
+      "albedo": "hair_scalp.png",
+      "nmap": "hair_scalp_normal.png",
+      "roughness": 0.83
+    },
+    "ear": {
+      "albedo": "ear.png",
+      "nmap": "ear_normal.png",
+      "roughness": 0.85
+    },
+    "eye": {
+      "albedo": "eye.png",
+      "nmap": "eye_normal.png",
+      "roughness": 0.32
+    }
+  },
+  "projection": {
+    "frontEyePixels": [
+      854.5,
+      195.5
+    ],
+    "frontMetresPerPixel": 0.000855,
+    "profileEyePixels": [
+      1030,
+      195.5
+    ],
+    "profileFrontDepth": 0.068,
+    "atlasSize": 768
+  },
+  "dimensionPolicy": "Match illustrated silhouette; use printed overall height 122 cm"
+}

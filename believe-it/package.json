@@ -1,0 +1,21 @@
+{
+  "name": "believe-it",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "build": "node tools/build.mjs",
+    "build:farm": "node tools/build.mjs farm",
+    "build:viewer": "node tools/build.mjs viewer",
+    "build:character": "node tools/build.mjs character",
+    "build:viktoria": "node tools/build.mjs viktoria",
+    "build:caecilia-gabriel": "node tools/build.mjs caecilia-gabriel"
+  },
+  "dependencies": {
+    "meshoptimizer": "^0.22.0",
+    "three": "0.170.0"
+  },
+  "type": "module",
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

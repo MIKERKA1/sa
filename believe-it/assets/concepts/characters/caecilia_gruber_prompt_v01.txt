@@ -1,0 +1,20 @@
+Use case: stylized-concept
+Asset type: character concept approval sheet for the existing historical first-person game Believe It; reference for a later 3D model, not a finished model.
+
+Primary request: Design one consistent character, Caecilia Gruber, age 72 according to the project's scenario, a rural household keeper in Upper Bavaria in late March 1922. This is an artistic game interpretation, not an authenticated historical portrait.
+
+Input images, if reference input is supported:
+1. assets/slides/slide3.png — existing project reference for the elderly woman's clothing silhouette only: dark kerchief, shoulder shawl, long skirt, pale working apron. Do not edit this slide, reproduce its second person or setting, or infer a documented face from its shadows.
+2. assets/props/lock_concept_user.png — reference for material clarity and consistent multi-view presentation only. Do not include the lock or borrow its metal/rust materials for the character.
+
+Subject: A small-framed elderly woman with slightly rounded shoulders, a weathered face, natural age lines and working hands. Restrained, tired, humane expression. Dark wool long-sleeved buttoned bodice with a high closed neckline; gathered ankle-length dark skirt; worn grey-beige linen apron with ties visible at the back. A dark wool kerchief tied under the chin, a simple dark knitted triangular shoulder shawl with short fringe, and plain worn black leather ankle boots with low heels. Practical clothing, legible seams, restrained repairs and wear. Face visible under the kerchief.
+
+Style/medium: Detailed realistic painted game character concept art, grounded anatomy, tactile matte wool, linen, aged skin and leather. Match the existing game's careful material detail. Natural muted color, not monochrome or sepia. Do not bake a retro pixel filter or low-poly faceting into the concept.
+
+Scene/backdrop: Plain neutral grey studio sheet, no environment.
+Composition/framing: Landscape sheet. Three uncropped full-body orthographic-style views of the SAME woman: front, side, back, at the same scale and floor line. Consistent relaxed stance, arms slightly away from the torso so garment construction remains legible. Add a clear three-quarter face portrait and small detail studies of the kerchief knot, apron fastening and footwear. Clean spacing between views. No labels required.
+Lighting/mood: Soft neutral diffuse light revealing the face, hands, folds and rear garment construction; mild contact shadows. Quiet and grounded, no theatrical horror lighting.
+Color palette: Muted charcoal, dark brown, grey, natural oatmeal linen, worn near-black leather; natural skin tones.
+
+Constraints: Same identity, proportions, pose, outfit, fastenings, hem lengths and boots in every view. Age reads as approximately 72. Only this character. Empty hands. No invented story scene. No changes to any existing project art. This sheet will require the user's explicit approval before modeling.
+Avoid: modern clothing or makeup, glamorous posing, tourist folk costume, fantasy witch imagery, exaggerated deformity, blood, injuries, bodies, other people, tools or accessories in the hands, snowy farm backdrop, fog, heavy grain, deep facial shadows, cropped feet, dramatic perspective, inconsistent turnarounds, logos, text and watermarks.

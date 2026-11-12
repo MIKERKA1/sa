@@ -1,0 +1,12 @@
+[
+ {"id":"doll-over-footboard","cam":{"pos":[-0.62,0.35,-2.95],"eye":1.4,"look":[-0.62,0.96,-3.55]}},
+ {"id":"forest-west-clear","cam":{"pos":[-17.5,0,-28.5],"eye":1.4,"look":[-21,1.2,-40]}},
+ {"id":"smokehouse-wall","lantern":true,"cam":{"pos":[-7.7,3,-4.57],"lvl":1,"eye":1.4,"look":[-8.8,4.2,-4.51]}},
+ {"id":"corner-side-a","cam":{"pos":[-13.1,0.35,-1.03],"eye":1.55,"look":[-13.38,2.1,-0.62]}},
+ {"id":"corner-side-b","cam":{"pos":[-12.9,0.35,-1.03],"eye":1.55,"look":[-13.38,2.1,-0.62]}},
+ {"id":"water-contact-a","cam":{"pos":[-4.73,0.35,-7.26],"eye":0.95,"look":[-4.26,1.14,-7.75]}},
+ {"id":"water-contact-b","cam":{"pos":[-4.7,0.35,-7.26],"eye":0.95,"look":[-4.26,1.14,-7.75]}},
+ {"id":"shavings-contact-a","cam":{"pos":[18.09,0.05,-5.95],"eye":1.02,"look":[18.67,0.98,-6.15]}},
+ {"id":"shavings-contact-b","cam":{"pos":[18.12,0.05,-5.95],"eye":1.02,"look":[18.67,0.98,-6.15]}},
+ {"id":"pin-and-board","cam":{"pos":[-5.48,0.35,-5.68],"eye":1.06,"look":[-5.31,1.18,-5.03]}}
+]
