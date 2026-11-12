@@ -2,7 +2,7 @@
 const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
 const {pathToFileURL}=require('node:url');
 const {chromium}=require(process.env.BELIEVE_IT_PLAYWRIGHT||'C:/Users/m/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/node_modules/playwright');
-const root=path.resolve(__dirname,'..'),out=path.resolve(root,process.argv[2]||'qa/caecilia-gabriel-v01/resize');
+const root=path.resolve(__dirname,'..'),out=path.resolve(root,process.argv[2]||'qa/caecilia-gabriel-v02/resize');
 const build=path.resolve(root,process.argv[3]||'dist/browser/believe_it_caecilia_gabriel.html');
 if(!out.startsWith(root+path.sep)||fs.existsSync(out))throw Error('Use a fresh output directory inside the project');
 fs.mkdirSync(out,{recursive:true});

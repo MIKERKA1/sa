@@ -1,7 +1,8 @@
 // Metres, Y up, +Z front. Illustrated proportions take precedence over inconsistent sheet labels.
+// v02 keeps the v01 head, hands, pose and landmark heights and rebuilds hair, garments and boots.
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
-import {buildHeadGeometry,buildEyeGeometry,headUV,HEAD,profile,radialHit,clamp,mix} from './caecilia_gabriel_head.js';
+import {buildHeadGeometry,buildEyeGeometry,headSDF,profile,clamp,mix} from './caecilia_gabriel_head.js';
 const V=(x,y,z)=>new THREE.Vector3(x,y,z),PI=Math.PI,TAU=2*PI;
 const smooth=(a,b,v)=>{const t=clamp((v-a)/(b-a));return t*t*(3-2*t);};
 const gauss=(x,y,cx,cy,rx,ry)=>Math.exp(-(((x-cx)/rx)**2+((y-cy)/ry)**2));
@@ -17,87 +18,158 @@ function loft(rows,nu=72,nv=60,fold=null,tile=.20){return surface((u,v)=>{const 
 const tube=(points,r=.001,segments=28,sides=6,closed=false)=>new THREE.TubeGeometry(new THREE.CatmullRomCurve3(points,closed,'centripetal'),segments,r,sides,closed);
 const sphere=(pos,scale,nu=28,nv=18)=>{const g=new THREE.SphereGeometry(1,nu,nv);g.scale(...scale);g.translate(...pos);return g;};
 const join=gs=>gs.length?mergeGeometries(gs.every(g=>g.index)?gs:gs.map(g=>g.index?g.toNonIndexed():g)):null;
-function ribbon(points,width,roll=0){const c=new THREE.CatmullRomCurve3(points);return surface((u,v)=>{const p=c.getPoint(v),d=c.getTangent(v),w=V(1,0,0).addScaledVector(d,-d.x).normalize(),n=new THREE.Vector3().crossVectors(d,w).normalize(),t=(u-.5)*width;return p.addScaledVector(w,t*Math.cos(roll*Math.sin(v*PI))).addScaledVector(n,t*Math.sin(roll*Math.sin(v*PI))+.0007*Math.sin(u*TAU));},8,40,(p,u,v)=>[u*.3,v*1.2]);}
+// Flat strip along a curve; `across` is the direction of its width.
+function band(points,across,width,nv=28,uv=[.3,1]){const c=new THREE.CatmullRomCurve3(points,false,'centripetal');return surface((u,v)=>{const w=typeof width==='function'?width(v):width;return c.getPoint(v).addScaledVector(typeof across==='function'?across(v):across,(u-.5)*w);},6,nv,(p,u,v)=>[u*uv[0],v*uv[1]]);}
+// One loop of a tied bow: a pinched band whose width runs along `up`.
+function bowLoop(at,out,front,up,length,width,depth){return surface((u,v)=>{const a=Math.sin(PI*v),w=width*(.34+.66*a**.7)*(1-.22*a**8);return at.clone().addScaledVector(out,length*a).addScaledVector(front,depth*(.55*a+.45*Math.sin(TAU*v))).addScaledVector(up,(u-.5)*w-.12*length*a*a);},6,36,(p,u,v)=>[u*.3,v*.8]);}
+
 const SKIRT=[[.292,.204,.138,0],[.35,.196,.136,0],[.48,.172,.123,0],[.64,.139,.100,0],[.776,.103,.076,0]];
 const BODICE=[[.755,.103,.076,0],[.80,.104,.078,0],[.87,.111,.077,-.004],[.932,.115,.071,-.006],[.966,.089,.051,-.006],[.991,.040,.034,-.005]];
-function skirtPoint(a,y,offset=0){const [rx,rz,cz]=profile(SKIRT,y),v=clamp((y-.292)/.484),f=(.0034+.0028*(1-v))*Math.sin(12*a+.18)+.0012*Math.sin(24*a+y*5);return V((rx+f+offset)*Math.sin(a),y,(rz+f*.65+offset)*Math.cos(a)+cz);}
-const bodiceFold=(a,y)=>.0010*Math.sin(a*16+y*17);
+// Deep irregular folds that open towards the hem, plus fine gathers under the waist seam.
+function skirtFold(a,y){const v=clamp((y-.292)/.484);return (.0030+.0040*(1-v))*Math.sin(11*a+.4+.8*Math.sin(3*a))+.0016*(1-v)*Math.sin(23*a+1.1)+.0015*v*v*v*Math.sin(46*a+.3);}
+function skirtPoint(a,y,offset=0){const [rx,rz,cz]=profile(SKIRT,y),f=skirtFold(a,y);return V((rx+f+offset)*Math.sin(a),y,(rz+f*.65+offset)*Math.cos(a)+cz);}
+const bodiceFold=(a,y)=>.0010*Math.sin(a*16+y*17)+.0012*smooth(.80,.765,y)*Math.sin(46*a+.3);
+function bodicePoint(a,y,offset=0){const [rx,rz,cz]=profile(BODICE,y),f=bodiceFold(a,y);return V((rx+f+offset)*Math.sin(a),y,(rz+f*.6+offset)*Math.cos(a)+cz);}
 function bodiceFront(x,y,offset=0){const [rx,rz,cz]=profile(BODICE,y),a=Math.asin(clamp(x/rx,-1,1));return V(x,y,cz+(rz+bodiceFold(a,y)*.6)*Math.cos(a)+offset);}
+// Sleeve radius along the arm: full upper sleeve, bloused above the wrist, gathered into the cuff band.
+const SLEEVE=[[0,.035],[.2,.036],[.5,.033],[.75,.034],[.86,.037],[.905,.031],[.93,.0215],[1,.0205]];
+
 export function buildCaeciliaGabrielGeometry(){
  const parts=[],add=(name,material,geometry,extras={})=>{if(!geometry)return;geometry.computeBoundingBox();parts.push({name,material,geometry,...extras});};
  add('face','face',buildHeadGeometry());for(const s of [-1,1])add(`eye-${s}`,'eye',buildEyeGeometry(s));
- add('dress-skirt','wool',surface((u,v)=>skirtPoint(u*TAU,mix(.292,.776,v)),120,100,(p,u)=>[u*5,p.y/.25],true));
- add('bodice','wool',loft(BODICE,88,72,bodiceFold,.20));
- const seams=[];for(const y of [.293,.309,.760])seams.push(tube(Array.from({length:120},(_,i)=>skirtPoint(i/119*TAU,y,.0008)),.0006,150,5,true));
- for(const a of [PI/2,-PI/2])seams.push(tube(Array.from({length:64},(_,i)=>skirtPoint(a,mix(.296,.759,i/63),.0009)),.00065,72,5));
+ add('dress-skirt','wool',surface((u,v)=>skirtPoint(u*TAU,mix(.292,.776,v)),144,84,(p,u)=>[u*5,p.y/.25],true));
+ add('bodice','wool',surface((u,v)=>bodicePoint(u*TAU,mix(.755,.991,v)),96,66,(p,u)=>[u*6,p.y/.20],true));
+ const seams=[];for(const y of [.293,.321])seams.push(tube(Array.from({length:160},(_,i)=>skirtPoint(i/160*TAU,y,.0008)),.0006,200,5,true));
+ for(const a of [PI/2,-PI/2]){seams.push(tube(Array.from({length:64},(_,i)=>skirtPoint(a,mix(.296,.750,i/63),.0009)),.00065,72,5));seams.push(tube(Array.from({length:20},(_,i)=>bodicePoint(a,mix(.790,.905,i/19),.0009)),.00065,24,5));}
+ // Back yoke seam; the dress closes in front only.
+ seams.push(tube(Array.from({length:40},(_,i)=>bodicePoint(mix(PI*.58,PI*1.42,i/39),.928,.0009)),.00065,48,5));
  add('dress-seams','thread',join(seams));
- add('front-placket','wool',surface((u,v)=>bodiceFront((u-.5)*.020,mix(.779,.964,v),.0018),6,50,(p,u)=>[u*.12,p.y/.20]));
- add('bodice-buttons','button',join(Array.from({length:5},(_,i)=>sphere(bodiceFront(0,.944-i*.033,.005).toArray(),[.0055,.0055,.0020],22,14))));
- // A rounded linen collar follows the visible shirt neckline rather than a cylindrical neck band.
- const collars=[];for(const s of [-1,1])collars.push(surface((u,v)=>{const a=Math.sin(u*PI/2),x=s*mix(.001+.040*a,.001+.073*a,v),inner=.995-.018*u,outer=.977-.018*Math.sin(u*PI)-.003*u,y=mix(inner,outer,v),p=bodiceFront(x,y,.0025);p.z+=.0015*Math.sin(v*PI);return p;},40,18,(p,u,v)=>[u*.9,v*.5]));
- collars.push(surface((u,v)=>{const a=mix(PI/2,PI*1.5,u);return V(mix(.040,.071,v)*Math.sin(a),mix(.994,.974,v),-.006+mix(.035,.052,v)*Math.cos(a));},60,14,(p,u,v)=>[u*1.8,v*.5]));
+ add('front-placket','wool',surface((u,v)=>bodiceFront((u-.5)*.023,mix(.779,.968,v),.0018+.0006*Math.sin(u*PI)),6,50,(p,u)=>[u*.12,p.y/.20]));
+ // Three pintucks on each side of the placket, and an inverted pleat down the centre back.
+ const tucks=[];for(const s of [-1,1]){for(const x of [.026,.036,.046])tucks.push(tube(Array.from({length:24},(_,i)=>bodiceFront(s*x,mix(.792,.958-(x-.026)*.5,i/23),.0004)),.0011,40,5));
+  tucks.push(tube(Array.from({length:16},(_,i)=>bodicePoint(PI+s*.085,mix(.792,.926,i/15),.0003)),.0011,24,5));}
+ add('bodice-tucks','wool',join(tucks));
+ const buttons=[];for(let i=0;i<5;i++){const p=bodiceFront(0,.946-i*.040,.0042);buttons.push(sphere(p.toArray(),[.0052,.0052,.0015],22,10));const rim=new THREE.TorusGeometry(.0046,.0009,6,22);rim.translate(p.x,p.y,p.z+.0004);buttons.push(rim);}
+ add('bodice-buttons','button',join(buttons));
+ // Round two-piece collar lying on the shoulder slope; its corners round off at the centre front.
+ const collars=[];for(const s of [-1,1])collars.push(surface((u,v)=>{
+   const a=mix(.035,PI,u),c=Math.cos(a),corner=a<.55?Math.sqrt(1-((.55-a)/.55)**2):1;
+   const drop=(.017+.019*Math.max(0,c)**1.2+.004*Math.max(0,-c))*corner,y=mix(.9945,.9945-drop,v)+.0030*Math.sin(PI*clamp(v/.3))*(1-v);
+   const [rx,rz,cz]=profile(BODICE,Math.min(y,.991)),off=.0036+.0016*Math.sin(PI*v)+.004*smooth(.991,.998,y);
+   return V(s*(rx+off)*Math.sin(a),y,(rz+off)*c+cz);},64,14,(p,u,v)=>[u*1.6,v*.4]));
  add('collar','collar',join(collars),{doubleSided:true});
  for(const s of [-1,1]){
   const c=new THREE.CatmullRomCurve3([V(s*.101,.949,-.004),V(s*.146,.869,.000),V(s*.168,.774,.009),V(s*.190,.689,.018),V(s*.207,.608,.028)]);
-  const section=(q,a,extra=0)=>{const p=c.getPoint(q),t=c.getTangent(q),n=new THREE.Vector3().crossVectors(t,V(0,0,1)).normalize(),r=Math.max(.0007,(mix(.031,.021,q)+.003*Math.sin(q*PI)+.0016*Math.sin(a*8+q*32)*Math.sin(q*PI))*Math.sin(PI/2*clamp(q/.13))+extra);return p.addScaledVector(n,Math.cos(a)*r).addScaledVector(V(0,0,1),Math.sin(a)*r*.88);};
-  add(`sleeve-${s}`,'wool',surface((u,v)=>section(v*.955,-u*TAU),52,74,(p,u,v)=>[u*1.7,v*2.6],true));
-  add(`cuff-${s}`,'wool',surface((u,v)=>section(mix(.925,1.0,v),-u*TAU,.0018),48,16,(p,u,v)=>[u*1.7,v*.3],true));
-  const cp=section(.966,0,.0035);add(`cuff-button-${s}`,'button',sphere(cp.toArray(),[.0055,.003,.0055],22,14));
+  const section=(q,a,extra=0)=>{const p=c.getPoint(q),t=c.getTangent(q),n=new THREE.Vector3().crossVectors(t,V(0,0,1)).normalize();
+   const head=.0016*Math.sin(a*9)*(1-smooth(.04,.26,q)),gather=.0021*Math.sin(a*11+q*9)*smooth(.55,.88,q)*(1-smooth(.905,.93,q));
+   const r=Math.max(.0007,(profile(SLEEVE,q)[0]+head+gather)*Math.sin(PI/2*clamp(q/.10))+extra);return p.addScaledVector(n,Math.cos(a)*r).addScaledVector(V(0,0,1),Math.sin(a)*r*.90);};
+  add(`sleeve-${s}`,'wool',surface((u,v)=>section(v*.955,-u*TAU),60,84,(p,u,v)=>[u*1.7,v*2.6],true));
+  add(`cuff-${s}`,'wool',surface((u,v)=>section(mix(.925,1.0,v),-u*TAU,.0022+.0006*Math.sin(v*PI)),48,12,(p,u,v)=>[u*1.7,v*.3],true));
+  // Outer back of the wrist on both arms.
+  const cp=section(.964,s>0?PI+.6:-.6,.0040),cb=sphere(cp.toArray(),[.0052,.0052,.0052],18,12);add(`cuff-button-${s}`,'button',cb);
   add(`wrist-${s}`,'skin',surface((u,v)=>{const q=mix(.96,1.06,v),p=q<=1?c.getPoint(q):c.getPoint(1).addScaledVector(c.getTangent(1),(q-1)*.37),t=c.getTangent(Math.min(1,q)),n=new THREE.Vector3().crossVectors(t,V(0,0,1)).normalize(),a=-u*TAU;return p.addScaledVector(n,.016*Math.cos(a)).addScaledVector(V(0,0,1),.014*Math.sin(a));},36,20,(p,u,v)=>[u,v],true));
  }
- add('apron','linen',surface((u,v)=>{const a=mix(-.90,.90,u),y=mix(.353,.775,v),p=skirtPoint(a,y,.0040);p.z+=.0018*Math.sin(u*25)*v;p.y+=.0013*Math.sin(u*13)*(1-v)**8;return p;},96,96,(p,u,v)=>[u*1.5,v*2.1]),{doubleSided:true});
- const hems=[];for(const a of [-.90,.90])hems.push(tube(Array.from({length:64},(_,i)=>skirtPoint(a,mix(.355,.774,i/63),.005)),.0007,80,5));
- hems.push(tube(Array.from({length:80},(_,i)=>skirtPoint(mix(-.90,.90,i/79),.355,.005)),.0008,96,5));add('apron-hems','linen',join(hems));
- add('waistband','linen',surface((u,v)=>{const a=u*TAU,y=mix(.758,.785,v),[rx,rz,cz]=profile(SKIRT,y);return V((rx+.006)*Math.sin(a),y,(rz+.008)*Math.cos(a)+cz);},96,14,(p,u,v)=>[u*4,v*.2],true));
- add('apron-bow-knot','linen',sphere([0,.772,-.091],[.014,.010,.008]));
+ // Apron cloth gathered into the band: tight pleats at the top relax into a few soft folds.
+ add('apron','linen',surface((u,v)=>{const a=mix(-.90,.90,u),y=mix(.353,.760,v),gather=.0021*v*v*Math.sin(u*74+2*Math.sin(u*9))*(.6+.4*Math.sin(u*5.3))+.0022*(1-v)*Math.sin(u*21+1.3*Math.sin(u*7)),p=skirtPoint(a,y,.0045+gather);p.y+=.0013*Math.sin(u*13)*(1-v)**8;return p;},120,72,(p,u,v)=>[u*1.5,v*2.1]),{doubleSided:true});
+ const hems=[];for(const a of [-.90,.90])hems.push(tube(Array.from({length:64},(_,i)=>skirtPoint(a,mix(.355,.757,i/63),.0052)),.0007,80,5));
+ hems.push(tube(Array.from({length:80},(_,i)=>skirtPoint(mix(-.90,.90,i/79),.355,.0052)),.0008,96,5));hems.push(tube(Array.from({length:80},(_,i)=>skirtPoint(mix(-.89,.89,i/79),.378,.0050)),.0005,96,5));add('apron-hems','linen',join(hems));
+ const waist=(a,y,off)=>{const [rx,rz,cz]=y<.776?profile(SKIRT,y):profile(BODICE,y);return V((rx+off)*Math.sin(a),y,(rz+off+.002)*Math.cos(a)+cz);};
+ add('waistband','linen',surface((u,v)=>waist(u*TAU,mix(.752,.787,v),.0050+.0022*Math.sin(v*PI)**.5),96,10,(p,u,v)=>[u*4,v*.2],true));
+ const back=waist(PI,.770,.008),X=V(1,0,0),Y=V(0,1,0),Zb=V(0,0,-1);
+ add('apron-bow-knot','linen',sphere([0,.770,back.z-.006],[.012,.013,.008]));
  for(const s of [-1,1]){
-  add(`apron-bow-${s}`,'linen',ribbon([V(0,.773,-.096),V(s*.038,.786,-.108),V(s*.070,.758,-.108),V(s*.025,.747,-.108),V(0,.773,-.097)],.018,.6),{doubleSided:true});
-  add(`apron-tie-${s}`,'linen',ribbon([V(s*.008,.767,-.104),V(s*.018,.720,-.117),V(s*.030,.666,-.136),V(s*.043,.624,-.148)],.026,.24*s),{doubleSided:true});
+  add(`apron-bow-${s}`,'linen',bowLoop(V(s*.006,.771,back.z-.005),V(s*.95,.31,0),Zb,V(-s*.31,.95,0),.058,.036,.020),{doubleSided:true});
+  add(`apron-tie-${s}`,'linen',surface((u,v)=>{const y=mix(.768,.612,v),a=PI+s*mix(.05,.20,v)+(u-.5)*.028/profile(SKIRT,y)[0];const p=skirtPoint(a,y,.0065+.0025*Math.sin(v*7+s));p.z-=.004*(1-v)**3;return p;},6,36,(p,u,v)=>[u*.3,v*1.2]),{doubleSided:true});
  }
- add('back-patch','patch',surface((u,v)=>{const x=mix(-.010,.043,u),y=mix(.360,.401,v),[rx,rz]=profile(SKIRT,y),a=PI-Math.asin(x/rx);return skirtPoint(a,y,.0016);},18,18,(p,u,v)=>[u,v]),{doubleSided:true});
+ // Wearer's right, as drawn on the approved back view.
+ add('back-patch','patch',surface((u,v)=>{const y=mix(.345,.405,v)+.0012*Math.sin(u*7),a=PI+mix(.065,.385,u)+.004*Math.sin(v*6);return skirtPoint(a,y,.0016);},20,18,(p,u,v)=>[u,v]),{doubleSided:true});
+ const stitches=[];for(let i=0;i<26;i++){const k=i/26*4,e=Math.floor(k),f=k-e,[u,v]=e===0?[f,0]:e===1?[1,f]:e===2?[1-f,1]:[0,1-f],q=(du,dv)=>skirtPoint(PI+mix(.065,.385,clamp(u+du,-.06,1.06)),mix(.345,.405,clamp(v+dv,-.08,1.08)),.0022),o=e%2?[.06,0]:[0,.08];stitches.push(tube([q(-o[0],-o[1]),q(o[0],o[1])],.0005,2,4));}
+ add('patch-stitches','thread',join(stitches));
  buildBoots(add);buildChildHands(add);buildHair(add);buildEars(add);
- for(const s of [-1,1])add(`stocking-${s}`,'stocking',loft([[.075,.020,.025,-.015],[.16,.022,.026,-.009],[.25,.030,.033,-.005],[.37,.031,.033,0],[.52,.038,.041,0]],48,64,(a,y)=>.00045*Math.cos(a*17),.12).translate(s*.058,0,0));
- // The illustrated head is larger than its printed 20 cm label; preserve the crown height and UV registration.
+ for(const s of [-1,1])add(`stocking-${s}`,'stocking',loft([[.075,.024,.027,-.015],[.16,.026,.029,-.010],[.25,.034,.038,-.008],[.37,.035,.037,-.002],[.52,.040,.042,0]],48,48,(a,y)=>.00045*Math.cos(a*17)+.0007*gauss(a,y,PI,.105,.9,.012)+.0006*gauss(a,y,PI,.128,.9,.010),.12).translate(s*.058,0,0));
+ // The illustrated head is larger than its printed 20 cm label; hair and braids are authored at this final size.
  for(const part of parts){
-  if(part.name==='face'||part.name.startsWith('eye-')||part.name==='hair-cap'||part.name==='hair-wisps'||part.name.startsWith('ear-'))part.geometry.scale(1.10,1.075,1.04).translate(0,-.0915,0);
-  else if(/^braid--?1$/.test(part.name)){const p=part.geometry.attributes.position;for(let i=0;i<p.count;i++){const y=p.getY(i),w=smooth(.950,1.075,y);p.setXYZ(i,p.getX(i)*(1+.10*w),y+(y-1.22)*.075*w,p.getZ(i)*(1+.04*w));}part.geometry.computeVertexNormals();}
+  if(part.name==='face'||part.name.startsWith('eye-')||part.name.startsWith('ear-'))part.geometry.scale(...HEAD_SCALE).translate(0,HEAD_DROP,0);
   part.geometry.computeBoundingBox();
  }
- return {parts,metadata:{name:'Caecilia Gabriel',age:7,modelVersion:1,height:1.22,units:'metres',front:'+Z',pose:'relaxed standing',concept:'caecilia_gabriel_concept_v01.png',dimensionPolicy:'Illustrated head, hem, apron, and braid lengths; printed total height 122 cm'}};
+ return {parts,metadata:{name:'Caecilia Gabriel',age:7,modelVersion:2,height:1.22,units:'metres',front:'+Z',pose:'relaxed standing',concept:'caecilia_gabriel_concept_v01.png',dimensionPolicy:'Illustrated head, hem, apron, and braid lengths; printed total height 122 cm'}};
 }
+
+// Lace-up ankle boot: toe cap, facings, tongue, back strap, welted leather sole and a low stacked heel.
+const BOOT=[[.011,.036,.094,.037],[.026,.039,.096,.037],[.044,.038,.090,.033],[.058,.035,.070,.018],[.072,.032,.050,.000],[.090,.030,.040,-.012],[.123,.031,.038,-.016]];
+const heelLift=(z,y)=>.008*(1-smooth(-.020,.040,z))*(1-clamp((y-.010)/.055));
+function bootPoint(a,y,off=0){const [rx,rz,cz]=profile(BOOT,y),crease=.0008*Math.sin(y*190+a*2)*clamp((.115-y)/.05)+.0011*Math.cos(a)*gauss(a,y,0,.060,1.1,.004)+.0009*Math.cos(a)*gauss(a,y,0,.068,1.1,.003);
+ const p=V((rx+crease+off)*Math.sin(a),y,(rz+crease+off)*Math.cos(a)+cz);p.y+=heelLift(p.z,y);return p;}
 function buildBoots(add){
- const rows=[[.018,.037,.096,.037],[.037,.039,.096,.037],[.055,.037,.082,.030],[.079,.031,.047,-.006],[.119,.028,.034,-.018]];
  for(const s of [-1,1]){
   const tr=g=>g.translate(s*.058,0,0);
-  add(`boot-sole-${s}`,'sole',tr(loft([[.001,.037,.098,.034],[.008,.040,.102,.034],[.019,.040,.102,.034],[.023,.037,.098,.034]],64,12,null,.16)));
-  add(`boot-upper-${s}`,'leather',tr(loft(rows,72,56,(a,y)=>.00075*Math.sin(y*190+a*2)*clamp((.11-y)/.05),.15)));
-  const f=(x,y)=>{const [rx,rz,cz]=profile(rows,y);return V(x,y,cz+rz*Math.sqrt(Math.max(0,1-(x/rx)**2))+.0014);},laces=[],eyelets=[],stitches=[];
-  for(let i=0;i<5;i++){const y=.057+i*.012,w=mix(.017,.013,i/4);
-   for(const a of [-1,1]){const ring=new THREE.TorusGeometry(.0014,.00035,5,12),p=f(a*w,y);ring.translate(p.x,p.y,p.z);eyelets.push(ring);}
-   if(i<4){const nw=mix(.017,.013,(i+1)/4);laces.push(tube([f(-w,y),f(0,y+.006),f(nw,y+.012)],.0010,12,5),tube([f(w,y),f(0,y+.006).add(V(0,0,.001)),f(-nw,y+.012)],.0010,12,5));}
+  const sole=loft([[.001,.0365,.0965,.036],[.004,.0385,.0985,.036],[.0085,.0385,.0985,.036],[.0105,.037,.097,.036]],64,8,null,.16),sp=sole.attributes.position;
+  for(let i=0;i<sp.count;i++)sp.setY(i,sp.getY(i)+.008*(1-smooth(-.020,.040,sp.getZ(i))));sole.computeVertexNormals();
+  const heel=loft([[.001,.036,.035,-.028],[.004,.0375,.0365,-.028],[.0175,.0375,.0365,-.028]],40,6,null,.16);
+  heel.setIndex([...heel.index.array,...Array.from({length:38},(_,i)=>[0,i+2,i+1]).flat()]);
+  add(`boot-sole-${s}`,'sole',tr(join([sole,heel])));
+  add(`boot-upper-${s}`,'leather',tr(surface((u,v)=>bootPoint(u*TAU,mix(.011,.123,v)),72,56,(p,u,v)=>[u*4,v*.8],true)));
+  const f=(x,y,off=.0014)=>{const [rx,rz,cz]=profile(BOOT,y),p=V(x,y,cz+rz*Math.sqrt(Math.max(0,1-(x/rx)**2))+off);p.y+=heelLift(p.z,y);return p;},laces=[],eyelets=[],trim=[],thread=[];
+  for(let i=0;i<5;i++){const y=.066+i*.012,w=mix(.016,.013,i/4);
+   for(const a of [-1,1]){const ring=new THREE.TorusGeometry(.0015,.0005,5,12),p=f(a*w,y);ring.translate(p.x,p.y,p.z);eyelets.push(ring);}
+   if(i<4){const nw=mix(.016,.013,(i+1)/4);laces.push(tube([f(-w,y),f(0,y+.006,.0022),f(nw,y+.012)],.0009,12,5),tube([f(w,y),f(0,y+.006,.0030),f(-nw,y+.012)],.0009,12,5));}
   }
-  for(let i=0;i<56;i++){const a=i/56*TAU;stitches.push(tube([V(.039*Math.sin(a),.025,.034+.098*Math.cos(a)),V(.039*Math.sin(a+.025),.025,.034+.098*Math.cos(a+.025))],.00035,2,4));}
-  add(`boot-laces-${s}`,'lace',tr(join(laces)));add(`boot-eyelets-${s}`,'metal',tr(join(eyelets)));add(`boot-stitches-${s}`,'thread',tr(join(stitches)));
+  // Small bow at the top eyelets.
+  const top=f(0,.116,.0035);for(const a of [-1,1])laces.push(tube([top,V(a*.010,top.y+.004,top.z+.003),V(a*.015,top.y-.004,top.z+.002),V(a*.006,top.y-.003,top.z+.001),top],.0008,20,5),tube([top,V(a*.006,top.y-.012,top.z+.004),V(a*.009,top.y-.022,top.z+.006)],.0008,10,5));
+  add(`boot-tongue-${s}`,'leather',tr(surface((u,v)=>f(mix(-.011,.011,u),mix(.060,.128,v),-.0004+.0012*Math.sin(u*PI)),8,24,(p,u,v)=>[u*.3,v*.5])),{doubleSided:true});
+  for(const a of [-1,1])trim.push(tube(Array.from({length:12},(_,i)=>{const y=mix(.060,.122,i/11);return f(a*mix(.0195,.0165,i/11),y,.0006);}),.0013,20,5));
+  // Toe-cap seam: where the vamp surface crosses a vertical plane behind the toes.
+  const cap=[];for(let i=0;i<=40;i++){const k=i/40*2-1,y=.0125+.041*(1-k*k),[rx,rz,cz]=profile(BOOT,y),q=(.094-cz)/rz;if(Math.abs(q)<1){const p=V(Math.sign(k)*rx*Math.sqrt(1-q*q),y,.094);p.y+=heelLift(p.z,y);cap.push(p);}}
+  trim.push(tube(cap,.0012,56,5));thread.push(tube(cap.map(p=>V(p.x*.985,p.y,p.z+.004)),.0004,56,4),tube(cap.map(p=>V(p.x*.985,p.y,p.z-.004)),.0004,56,4));
+  trim.push(tube(Array.from({length:48},(_,i)=>bootPoint(i/48*TAU,.1215,.0008)),.0017,64,6,true));
+  add(`boot-trim-${s}`,'leather',tr(join(trim)));
+  add(`boot-strap-${s}`,'leather',tr(join([surface((u,v)=>bootPoint(PI+(u-.5)*.36,mix(.022,.123,v),.0014),4,24,(p,u,v)=>[u*.2,v*.6]),tube([bootPoint(PI-.12,.119,.0016),bootPoint(PI-.09,.128,.003),bootPoint(PI,.134,.004),bootPoint(PI+.09,.128,.003),bootPoint(PI+.12,.119,.0016)],.0016,18,6)])),{doubleSided:true});
+  thread.push(tube(Array.from({length:64},(_,i)=>{const a=i/64*TAU,z=.036+.0978*Math.cos(a);return V(.0378*Math.sin(a),.0122+.008*(1-smooth(-.020,.040,z)),z);}),.0005,96,4,true));
+  add(`boot-laces-${s}`,'lace',tr(join(laces)));add(`boot-eyelets-${s}`,'metal',tr(join(eyelets)));add(`boot-stitches-${s}`,'thread',tr(join(thread)));
  }
 }
-function hairline(a){a=Math.abs(a>PI?a-TAU:a);return profile([[0,1.161],[.45,1.153],[.95,1.128],[1.55,1.080],[2.25,1.045],[PI,1.019]],a)[0];}
-function hairP(a,v,extra=0){const y=mix(hairline(a),1.220,Math.sin(v*PI/2)),[rx,rz,cz]=profile(HEAD,Math.min(y,1.205)),t=Math.sqrt(clamp((1.220-y)/.015));return V((rx+.0027+extra)*Math.sin(a)*t,y,mix(cz,-.014,clamp((y-1.205)/.015))+(rz+.0030+extra)*Math.cos(a)*t);}
+
+// The v01 head scale, kept so the face texture registration is unchanged.
+const HEAD_SCALE=[1.10,1.075,1.04],HEAD_DROP=-.0915,CENTRE=V(0,1.100,-.008);
+const insideHead=p=>headSDF(p.x/HEAD_SCALE[0],(p.y-HEAD_DROP)/HEAD_SCALE[1],p.z/HEAD_SCALE[2])<0;
+function skullRadius(d){let r=.17;const p=V(0,0,0);while(r>0&&!insideHead(p.copy(CENTRE).addScaledVector(d,r)))r-=.003;let lo=r,hi=r+.003;for(let i=0;i<12;i++){const m=(lo+hi)/2;insideHead(p.copy(CENTRE).addScaledVector(d,m))?lo=m:hi=m;}return lo;}
+// Hair is drawn from the centre parting round the head to a gather behind each ear lobe, where the plait begins.
+const GATHER=s=>V(s*.079,1.040,-.034);
+const HAIR_MID=[[0,.89,.06,.45],[.06,.95,.16,.26],[.236,.94,.33,-.08],[.709,.78,-.22,-.58],[1,.47,-.72,-.52]];
+function hairPoint(s,t,v){
+ const psi=mix(.80,4.10,t),d0=V(0,Math.sin(psi),Math.cos(psi)),d1=GATHER(s).sub(CENTRE).normalize(),m=profile(HAIR_MID,t),mid=V(s*m[0],m[1],m[2]).normalize();
+ const ctl=mid.multiplyScalar(4).sub(d0).sub(d1).multiplyScalar(.5),d=d0.multiplyScalar((1-v)**2).addScaledVector(ctl,2*v*(1-v)).addScaledVector(d1,v*v).normalize();
+ const edge=.25+.75*smooth(0,.07,t)*smooth(0,.05,1-t),w=smooth(.78,1,v);
+ const locks=(.0010*Math.sin(TAU*17*t+2.1*Math.sin(7*t))+.0006*Math.sin(TAU*41*t+1+3*Math.sin(3*t)))*smooth(.05,.3,v);
+ const p=CENTRE.clone().addScaledVector(d,skullRadius(d)+(.0012+.0030*smooth(0,.10,v)+.0085*Math.sin(PI*Math.min(1,v*1.08))**.9)*edge+locks*(1-.6*w));
+ return p.lerp(GATHER(s).add(V(s*.002,.011*Math.cos(PI*t),.012*(1-2*t))),w);
+}
+function plait(s){
+ const c=new THREE.CatmullRomCurve3([GATHER(s),V(s*.085,1.012,-.020),V(s*.084,.990,.004),V(s*.079,.972,.029),V(s*.076,.960,.039)],false,'centripetal'),turns=3.25;
+ const frame=v=>{const p=c.getPoint(v),t=c.getTangent(v),w=V(1,0,0).addScaledVector(t,-t.x).normalize(),f=new THREE.Vector3().crossVectors(t,w).normalize();return {p,w,f};};
+ const centre=(k,v)=>{const {p,w,f}=frame(clamp(v)),a=v*TAU*turns+k*TAU/3,g=.62+.38*smooth(0,.14,v)-.12*smooth(.8,1,v);return p.addScaledVector(w,.0052*g*Math.sin(a)).addScaledVector(f,.0026*g*Math.sin(2*a));};
+ const strands=[];for(let k=0;k<3;k++)strands.push(surface((u,v)=>{
+   // Sections follow the strand; the shallow front-to-back weave keeps the inside of each turn from folding over.
+   const p=centre(k,v),t=centre(k,v+.004).sub(centre(k,v-.004)).normalize(),{f}=frame(v),thin=f.addScaledVector(t,-f.dot(t)).normalize(),wide=new THREE.Vector3().crossVectors(t,thin),g=.62+.38*smooth(0,.14,v)-.12*smooth(.8,1,v),a=u*TAU;
+   return p.addScaledVector(thin,.0036*g*Math.cos(a)).addScaledVector(wide,.0062*g*Math.sin(a));},12,150,(p,u,v)=>[u*1.2,v*3],true));
+ return {geometry:join(strands),end:c.getPoint(1)};
+}
 function buildHair(add){
- const cap=surface((u,v)=>hairP(u*TAU,v),144,80,headUV,true),p=cap.attributes.position,n=cap.attributes.normal;
- // Coincident pole vertices have no triangle area from which to derive a normal.
- for(let i=0;i<p.count;i++)if(p.getY(i)>1.219999)n.setXYZ(i,0,1,0);
- add('hair-cap','hair-scalp',cap);
+ const halves=[];for(const s of [-1,1])halves.push(surface((u,v)=>hairPoint(s,s>0?1-u:u,v),132,40,(p,u,v)=>[u*9,v*1.7]));
+ add('hair-cap','hair',join(halves));
  const fine=[];
- // The registered scalp image carries the part and fine strands without a repeated wire-like silhouette.
  for(const s of [-1,1]){
-  const c=new THREE.CatmullRomCurve3([V(s*.074,1.073,-.023),V(s*.077,1.036,-.008),V(s*.075,.999,.044),V(s*.071,.965,.070),V(s*.067,.942,.082)]),gs=[];
-  for(let k=0;k<3;k++){const p=Array.from({length:120},(_,j)=>{const v=j/119,q=c.getPoint(v),a=v*TAU*7+k*TAU/3,r=mix(.0048,.0038,v);return q.add(V(Math.cos(a)*r,0,Math.sin(2*a)*r*.65));});gs.push(tube(p,.0045,220,9));}
-  add(`braid-${s}`,'hair',join(gs));
-  const tails=[];for(let k=0;k<12;k++){const a=k/12*TAU;tails.push(tube([V(s*.067+Math.cos(a)*.0035,.941,.082+Math.sin(a)*.0035),V(s*.066+Math.cos(a)*.006,.919,.086+Math.sin(a)*.004),V(s*.065+Math.cos(a)*.005,.903,.090+Math.sin(a)*.003)],.0008,20,5));}add(`braid-tail-${s}`,'hair',join(tails));
-  add(`hair-bow-knot-${s}`,'collar',sphere([s*.067,.943,.094],[.0045,.004,.003]));
-  for(const b of [-1,1])add(`hair-bow-${s}-${b}`,'collar',ribbon([V(s*.067,.944,.097),V(s*.067+b*.014,.951,.099),V(s*.067+b*.016,.938,.099),V(s*.067,.942,.097)],.007,.3),{doubleSided:true});
-  add(`hair-ribbon-${s}`,'collar',ribbon([V(s*.068,.941,.097),V(s*.078,.925,.099),V(s*.080,.913,.098)],.010,.25),{doubleSided:true});
-  for(let i=0;i<8;i++)fine.push(tube([hairP(s*(1+i*.04),.13,.0004),V(s*(.075+i*.0003),1.107-i*.001,-.002),V(s*.075,1.090-i*.001,.000)],.00012,18,4));
+  const {geometry,end}=plait(s);add(`braid-${s}`,'hair',geometry);
+  // Loose end below the ribbon, resting on the bodice.
+  const tail=[end,V(s*.074,.940,.051),V(s*.072,.916,.060)],tc=new THREE.CatmullRomCurve3(tail),tails=[surface((u,v)=>{const p=tc.getPoint(v),r=mix(.0085,.0022,v**1.4)*(1+.10*Math.sin(u*TAU*7)),a=u*TAU;return p.add(V(Math.cos(a)*r,0,Math.sin(a)*r*.75));},18,24,(p,u,v)=>[u*1.2,v*.8],true)];
+  for(let k=0;k<9;k++){const a=k/9*TAU;tails.push(tube([end.clone().add(V(Math.cos(a)*.006,-.004,Math.sin(a)*.004)),V(s*.074+Math.cos(a)*.007,.938,.052+Math.sin(a)*.004),V(s*.072+Math.cos(a)*.006,.910-.003*Math.sin(a*2),.061+Math.sin(a)*.003)],.0007,16,5));}
+  add(`braid-tail-${s}`,'hair',join(tails));
+  const at=end.clone().add(V(0,0,.0105)),X=V(1,0,0),Y=V(0,1,0),Z=V(0,0,1);
+  add(`hair-bow-knot-${s}`,'collar',sphere(at.toArray(),[.0052,.0058,.0040]));
+  for(const b of [-1,1])add(`hair-bow-${s}-${b}`,'collar',bowLoop(at.clone().add(V(b*.002,.001,0)),X.clone().multiplyScalar(b),Z,Y,.022,.013,.006),{doubleSided:true});
+  add(`hair-ribbon-${s}`,'collar',join([-1,1].map(b=>band([at.clone().add(V(b*.002,-.002,.001)),at.clone().add(V(b*.009,-.018,.006)),at.clone().add(V(b*.012,-.034,.011))],X,v=>.009+.002*v,16))),{doubleSided:true});
+  // Flyaway wisps at the temple and the nape.
+  for(const [t,v,dy,dz] of [[.004,.50,-.030,.006],[.004,.56,-.038,.002],[.004,.63,-.026,-.002],[.996,.45,-.014,-.006],[.996,.62,-.016,-.004]]){const a=hairPoint(s,t,v),b=hairPoint(s,t,v+.05);fine.push(tube([a,b.clone().add(V(s*.0015,dy*.5,dz*.5)),b.clone().add(V(s*.001,dy,dz))],.00035,14,4));}
  }
  add('hair-wisps','hair',join(fine));
 }
@@ -106,7 +178,7 @@ function buildEars(add){
   const earUV=g=>{const p=g.attributes.position,uv=g.attributes.uv;for(let i=0;i<p.count;i++)uv.setXY(i,clamp((p.getZ(i)+.034)/.028),clamp((p.getY(i)-1.059)/.038));return g;};
   add(`ear-${s}`,'ear',earUV(sphere([s*.070,1.077,-.020],[.0045,.017,.011],36,26)));
   add(`ear-concha-${s}`,'ear',earUV(sphere([s*.073,1.078,-.017],[.001,.008,.0055],28,20)));
-  const points=Array.from({length:40},(_,i)=>{const a=i/39*TAU;return V(s*(.075+.0005*Math.sin(a)),1.078+.0135*Math.sin(a),-.020+.0085*Math.cos(a));});
+  const points=Array.from({length:40},(_,i)=>{const a=i/40*TAU;return V(s*(.075+.0005*Math.sin(a)),1.078+.0135*Math.sin(a),-.020+.0085*Math.cos(a));});
   add(`ear-helix-${s}`,'ear',earUV(tube(points,.0010,56,7,true)));
   add(`ear-tragus-${s}`,'ear',earUV(sphere([s*.073,1.077,-.010],[.0015,.003,.002])));
  }

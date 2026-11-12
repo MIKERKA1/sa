@@ -18,6 +18,17 @@ node tools/build.mjs all qa/NEW-check/build
 
 Использовать новое имя каталога. Относительный путь считается от корня проекта. Сборщик упаковывает существующие встроенные модели; он не запекает геометрию и не перезаписывает `deliver/`. Вступление не пересобирается.
 
+## Цецилия-младшая v02
+
+Текущая версия — `assets/characters/caecilia_gabriel/v02/`; описание и порядок пересборки — [caecilia_gabriel_v02.md](caecilia_gabriel_v02.md). Команды ниже работают с ней. Дополнительно:
+
+```sh
+node tools/caecilia-gabriel-mesh-check.mjs
+node tools/caecilia-gabriel-farm-check.mjs qa/NEW-check/farm
+```
+
+Вне Windows задать `BELIEVE_IT_PLAYWRIGHT` (путь к пакету playwright) и `BELIEVE_IT_BROWSER`. v01 воспроизводится командой `node tools/caecilia_gabriel_bake_v01.mjs`; она возвращает витрину к v01, после неё снова запустить `node tools/caecilia_gabriel_bake.mjs`.
+
 ## Цецилия-младшая v01
 
 Готовые GLB и текстуры находятся в `assets/characters/caecilia_gabriel/v01/`. Обычная HTML-сборка использует их без перезапекания:
