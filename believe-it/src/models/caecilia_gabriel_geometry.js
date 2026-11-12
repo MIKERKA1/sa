@@ -1,5 +1,5 @@
 // Metres, Y up, +Z front. Illustrated proportions take precedence over inconsistent sheet labels.
-// v02 keeps the v01 head, hands, pose and landmark heights and rebuilds hair, garments and boots.
+// v02 rebuilt hair, garments and boots; v03 refits the head, hairline and ears to the sheet's portraits.
 import * as THREE from 'three';
 import {mergeGeometries} from 'three/addons/utils/BufferGeometryUtils.js';
 import {buildHeadGeometry,buildEyeGeometry,headSDF,profile,clamp,mix} from './caecilia_gabriel_head.js';
@@ -92,7 +92,7 @@ export function buildCaeciliaGabrielGeometry(){
   if(part.name==='face'||part.name.startsWith('eye-')||part.name.startsWith('ear-'))part.geometry.scale(...HEAD_SCALE).translate(0,HEAD_DROP,0);
   part.geometry.computeBoundingBox();
  }
- return {parts,metadata:{name:'Caecilia Gabriel',age:7,modelVersion:2,height:1.22,units:'metres',front:'+Z',pose:'relaxed standing',concept:'caecilia_gabriel_concept_v01.png',dimensionPolicy:'Illustrated head, hem, apron, and braid lengths; printed total height 122 cm'}};
+ return {parts,metadata:{name:'Caecilia Gabriel',age:7,modelVersion:3,height:1.22,units:'metres',front:'+Z',pose:'relaxed standing',concept:'caecilia_gabriel_concept_v01.png',dimensionPolicy:'Illustrated head, hem, apron, and braid lengths; printed total height 122 cm'}};
 }
 
 // Lace-up ankle boot: toe cap, facings, tongue, back strap, welted leather sole and a low stacked heel.
@@ -131,21 +131,39 @@ function buildBoots(add){
 
 // The v01 head scale, kept so the face texture registration is unchanged.
 const HEAD_SCALE=[1.10,1.075,1.04],HEAD_DROP=-.0915,CENTRE=V(0,1.100,-.008);
+// Sheet measurements are in the head generator's unscaled metres; this puts them on the finished head.
+const onHead=(x,y,z)=>V(x*HEAD_SCALE[0],y*HEAD_SCALE[1]+HEAD_DROP,z*HEAD_SCALE[2]);
 const insideHead=p=>headSDF(p.x/HEAD_SCALE[0],(p.y-HEAD_DROP)/HEAD_SCALE[1],p.z/HEAD_SCALE[2])<0;
 function skullRadius(d){let r=.17;const p=V(0,0,0);while(r>0&&!insideHead(p.copy(CENTRE).addScaledVector(d,r)))r-=.003;let lo=r,hi=r+.003;for(let i=0;i<12;i++){const m=(lo+hi)/2;insideHead(p.copy(CENTRE).addScaledVector(d,m))?lo=m:hi=m;}return lo;}
-// Hair is drawn from the centre parting round the head to a gather behind each ear lobe, where the plait begins.
-const GATHER=s=>V(s*.079,1.040,-.034);
-const HAIR_MID=[[0,.89,.06,.45],[.06,.95,.16,.26],[.236,.94,.33,-.08],[.709,.78,-.22,-.58],[1,.47,-.72,-.52]];
+// Hair is drawn from the centre parting round the head to a gather behind and below each ear, where the plait begins.
+const GATHER=s=>onHead(s*.069,1.060,-.041);
+const dirTo=p=>p.clone().sub(CENTRE).normalize();
+// Front edge of the hair as drawn: forehead, temple, over the top of the ear, down behind it. The ear stays uncovered.
+const HAIRLINE=[[0,[0,1.166,.089]],[.10,[.026,1.158,.080]],[.22,[.044,1.130,.055]],[.40,[.058,1.108,.022]],[.57,[.070,1.114,-.012]],[.78,[.068,1.090,-.037]],[1,[.069,1.060,-.041]]];
+function hairline(s,v){
+ let i=0;while(i<HAIRLINE.length-2&&v>HAIRLINE[i+1][0])i++;
+ const k=j=>{const [x,y,z]=HAIRLINE[clamp(j,0,HAIRLINE.length-1)][1];return dirTo(onHead(s*x,y,z));},u=clamp((v-HAIRLINE[i][0])/(HAIRLINE[i+1][0]-HAIRLINE[i][0]));
+ // Catmull-Rom through the neighbouring directions
+ const a=k(i-1),b=k(i),c=k(i+1),e=k(i+2),cr=n=>.5*(2*b[n]+(c[n]-a[n])*u+(2*a[n]-5*b[n]+4*c[n]-e[n])*u*u+(-a[n]+3*b[n]-3*c[n]+e[n])*u*u*u);
+ return V(cr('x'),cr('y'),cr('z')).normalize();
+}
+const HAIR_MID=[[0,.89,.06,.45],[.06,.95,.16,.26],[.286,.94,.33,-.08],[.74,.78,-.22,-.58],[1,.47,-.72,-.52]];
+const PART_FRONT=.555,PART_NAPE=4.10; // angle of the parting above the forward axis: forehead hairline to nape
+function arc(s,t,v){
+ const psi=mix(PART_FRONT,PART_NAPE,t),d0=V(0,Math.sin(psi),Math.cos(psi)),d1=dirTo(GATHER(s)),m=profile(HAIR_MID,t),mid=V(s*m[0],m[1],m[2]).normalize();
+ const ctl=mid.multiplyScalar(4).sub(d0).sub(d1).multiplyScalar(.5);return d0.multiplyScalar((1-v)**2).addScaledVector(ctl,2*v*(1-v)).addScaledVector(d1,v*v).normalize();
+}
 function hairPoint(s,t,v){
- const psi=mix(.80,4.10,t),d0=V(0,Math.sin(psi),Math.cos(psi)),d1=GATHER(s).sub(CENTRE).normalize(),m=profile(HAIR_MID,t),mid=V(s*m[0],m[1],m[2]).normalize();
- const ctl=mid.multiplyScalar(4).sub(d0).sub(d1).multiplyScalar(.5),d=d0.multiplyScalar((1-v)**2).addScaledVector(ctl,2*v*(1-v)).addScaledVector(d1,v*v).normalize();
- const edge=.25+.75*smooth(0,.07,t)*smooth(0,.05,1-t),w=smooth(.78,1,v);
+ // Strands near the forehead follow the drawn hairline; further back they fall straight to the gather.
+ const lift=1-smooth(0,.65,t),d=arc(s,t,v);
+ if(lift>0)d.addScaledVector(hairline(s,v).sub(arc(s,0,v)),lift).normalize();
+ const edge=.45+.55*smooth(0,.07,t)*smooth(0,.05,1-t),w=smooth(.86,1,v);
  const locks=(.0010*Math.sin(TAU*17*t+2.1*Math.sin(7*t))+.0006*Math.sin(TAU*41*t+1+3*Math.sin(3*t)))*smooth(.05,.3,v);
  const p=CENTRE.clone().addScaledVector(d,skullRadius(d)+(.0012+.0030*smooth(0,.10,v)+.0085*Math.sin(PI*Math.min(1,v*1.08))**.9)*edge+locks*(1-.6*w));
- return p.lerp(GATHER(s).add(V(s*.002,.011*Math.cos(PI*t),.012*(1-2*t))),w);
+ return p.lerp(GATHER(s).add(V(s*(.002+.006*Math.sin(PI*t)),.015*Math.cos(PI*t),.014*(1-2*t))),w);
 }
 function plait(s){
- const c=new THREE.CatmullRomCurve3([GATHER(s),V(s*.085,1.012,-.020),V(s*.084,.990,.004),V(s*.079,.972,.029),V(s*.076,.960,.039)],false,'centripetal'),turns=3.25;
+ const g=GATHER(s),c=new THREE.CatmullRomCurve3([g,V(s*.084,1.020,-.030),V(s*.086,.996,-.004),V(s*.080,.974,.027),V(s*.076,.960,.039)],false,'centripetal'),turns=3.5;
  const frame=v=>{const p=c.getPoint(v),t=c.getTangent(v),w=V(1,0,0).addScaledVector(t,-t.x).normalize(),f=new THREE.Vector3().crossVectors(t,w).normalize();return {p,w,f};};
  const centre=(k,v)=>{const {p,w,f}=frame(clamp(v)),a=v*TAU*turns+k*TAU/3,g=.62+.38*smooth(0,.14,v)-.12*smooth(.8,1,v);return p.addScaledVector(w,.0052*g*Math.sin(a)).addScaledVector(f,.0026*g*Math.sin(2*a));};
  const strands=[];for(let k=0;k<3;k++)strands.push(surface((u,v)=>{
@@ -157,7 +175,6 @@ function plait(s){
 function buildHair(add){
  const halves=[];for(const s of [-1,1])halves.push(surface((u,v)=>hairPoint(s,s>0?1-u:u,v),132,40,(p,u,v)=>[u*9,v*1.7]));
  add('hair-cap','hair',join(halves));
- const fine=[];
  for(const s of [-1,1]){
   const {geometry,end}=plait(s);add(`braid-${s}`,'hair',geometry);
   // Loose end below the ribbon, resting on the bodice.
@@ -168,19 +185,29 @@ function buildHair(add){
   add(`hair-bow-knot-${s}`,'collar',sphere(at.toArray(),[.0052,.0058,.0040]));
   for(const b of [-1,1])add(`hair-bow-${s}-${b}`,'collar',bowLoop(at.clone().add(V(b*.002,.001,0)),X.clone().multiplyScalar(b),Z,Y,.022,.013,.006),{doubleSided:true});
   add(`hair-ribbon-${s}`,'collar',join([-1,1].map(b=>band([at.clone().add(V(b*.002,-.002,.001)),at.clone().add(V(b*.009,-.018,.006)),at.clone().add(V(b*.012,-.034,.011))],X,v=>.009+.002*v,16))),{doubleSided:true});
-  // Flyaway wisps at the temple and the nape.
-  for(const [t,v,dy,dz] of [[.004,.50,-.030,.006],[.004,.56,-.038,.002],[.004,.63,-.026,-.002],[.996,.45,-.014,-.006],[.996,.62,-.016,-.004]]){const a=hairPoint(s,t,v),b=hairPoint(s,t,v+.05);fine.push(tube([a,b.clone().add(V(s*.0015,dy*.5,dz*.5)),b.clone().add(V(s*.001,dy,dz))],.00035,14,4));}
  }
- add('hair-wisps','hair',join(fine));
 }
+// Ears as the sheet's profile shows them: 49 mm tall, 30 mm deep, lobe at 1.063, standing a little off the head.
+// Authored in the head generator's unscaled metres; the head scale is applied with the face.
 function buildEars(add){
+ const C=[.0650,1.0875,-.0155],H=.0240,D=.0145;
  for(const s of [-1,1]){
-  const earUV=g=>{const p=g.attributes.position,uv=g.attributes.uv;for(let i=0;i<p.count;i++)uv.setXY(i,clamp((p.getZ(i)+.034)/.028),clamp((p.getY(i)-1.059)/.038));return g;};
-  add(`ear-${s}`,'ear',earUV(sphere([s*.070,1.077,-.020],[.0045,.017,.011],36,26)));
-  add(`ear-concha-${s}`,'ear',earUV(sphere([s*.073,1.078,-.017],[.001,.008,.0055],28,20)));
-  const points=Array.from({length:40},(_,i)=>{const a=i/40*TAU;return V(s*(.075+.0005*Math.sin(a)),1.078+.0135*Math.sin(a),-.020+.0085*Math.cos(a));});
-  add(`ear-helix-${s}`,'ear',earUV(tube(points,.0010,56,7,true)));
-  add(`ear-tragus-${s}`,'ear',earUV(sphere([s*.073,1.077,-.010],[.0015,.003,.002])));
+  const place=g=>{g.rotateX(-.16);g.rotateY(-s*.36);g.translate(s*C[0],C[1],C[2]);
+   // Side-on projection of the sheet's ear: see tools/caecilia_gabriel_textures.py
+   const p=g.attributes.position,uv=g.attributes.uv;for(let i=0;i<p.count;i++)uv.setXY(i,clamp((p.getZ(i)+.034)/.036),clamp((p.getY(i)-1.058)/.052));return g;};
+  // Outline at angle a (0 = front, 90 deg = top): narrow lobe that sits forward, full upper ear.
+  const rim=(a,k=1)=>{const y=Math.sin(a),lobe=Math.max(0,-y);return V(0,H*y*k,(D*Math.cos(a)*(1-.36*lobe**1.3)+.0034*lobe)*k);};
+  const shell=new THREE.SphereGeometry(1,36,26),p=shell.attributes.position;
+  for(let i=0;i<p.count;i++){const x=p.getX(i),y=p.getY(i),z=p.getZ(i),lobe=Math.max(0,-y),out=s*x>0?1:0;
+   // concha: a bowl in the outer face, in front of the middle of the ear
+   const bowl=out*Math.exp(-(((y-.12)/.38)**2+((z-.18)/.42)**2));
+   p.setXYZ(i,(Math.abs(x)*.0042*(s*x>0?1:.6)-bowl*.0030)*Math.sign(x||s),H*y,D*z*(1-.36*lobe**1.3)+.0034*lobe);}
+  shell.computeVertexNormals();{const n=shell.attributes.normal;for(let i=0;i<p.count;i++)if(Math.abs(p.getY(i))>H*.9999)n.setXYZ(i,0,Math.sign(p.getY(i)),0);}add(`ear-${s}`,'ear',place(shell));
+  // helix from the front root over the top and down the back to the lobe; antihelix inside it
+  const helix=tube(Array.from({length:36},(_,i)=>{const a=mix(.35,4.45,i/35),q=rim(a,.94);q.x=s*.0030;return q;}),.0017,64,7);
+  const anti=tube(Array.from({length:20},(_,i)=>{const a=mix(.9,4.1,i/19),q=rim(a,.60);q.z-=.0015;q.x=s*.0026;return q;}),.0013,36,6);
+  add(`ear-helix-${s}`,'ear',place(join([helix,anti])));
+  add(`ear-tragus-${s}`,'ear',place(sphere([s*.0022,-.0012,.0098],[.0024,.0036,.0030],14,10)));
  }
 }
 
