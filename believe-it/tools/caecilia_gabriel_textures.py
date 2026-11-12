@@ -5,12 +5,12 @@ from array import array
 import json,hashlib,math
 
 ROOT=Path(__file__).resolve().parents[1]
-OUT=ROOT/'assets/characters/caecilia_gabriel/v02';OUT.mkdir(parents=True,exist_ok=True)
+OUT=ROOT/'assets/characters/caecilia_gabriel/v03';OUT.mkdir(parents=True,exist_ok=True)
 SOURCE=ROOT/'assets/concepts/characters/caecilia_gabriel_concept_v01.png'
 im=Image.open(SOURCE).convert('RGB')
 assert im.size==(1536,1024),'Reference pixel registrations require the approved 1536x1024 source'
 pixels=im.load();illum=im.filter(ImageFilter.GaussianBlur(13)).load();size=768
-data=array('f');data.frombytes((ROOT/'qa/caecilia-gabriel-v02/head-atlas.f32').read_bytes())
+data=array('f');data.frombytes((ROOT/'qa/caecilia-gabriel-v03/head-atlas.f32').read_bytes())
 assert len(data)==size*size*6
 def sample(x,y):
  x=max(0,min(im.width-1.001,x));y=max(0,min(im.height-1.001,y));ix=int(x);iy=int(y);fx=x-ix;fy=y-iy
@@ -31,12 +31,25 @@ for j in range(size):
   sidepx=1030-(z-.068)/.000855;sidepy=195.5+(1.102-y)/.000855
   fc=deshade(sample(frontx,py),frontx,py);pc=deshade(sample(sidepx,sidepy),sidepx,sidepy)
   # Restrict projected skin to the portrait face: collar, braid and background cannot become skin.
-  fm=smooth(.35,.80,nz)*smooth(94,119,py)*(1-smooth(302,320,py))*smooth(0,10,91-abs(frontx-854.5))
+  fm=smooth(.35,.80,nz)*smooth(94,119,py)*(1-smooth(296,308,py))*smooth(0,10,91-abs(frontx-854.5))
   pm=smooth(.45,.85,abs(nx))*(1-smooth(.30,.70,nz))*smooth(117,137,sidepy)*(1-smooth(297,317,sidepy))
-  pm*=1-.92*(1-smooth(-.010,.015,z))*smooth(1.045,1.060,y)*(1-smooth(1.098,1.110,y))
+  pm*=1-.92*(1-smooth(-.006,.012,z))*smooth(1.050,1.062,y)*(1-smooth(1.108,1.120,y))
   fm*=.15+.85*smooth(8,20,fc[0]-fc[2])
   pm*=.15+.85*smooth(8,20,pc[0]-pc[2])
   color=blend(skin,fc,fm);color=blend(color,pc,pm)
+  # Walls of the eye opening and the nostril dent face sideways, so no drawing reaches them; left as bare skin
+  # they showed as a pale ring. Mirrors eyelidBounds() in caecilia_gabriel_head.js.
+  ex=abs(x)-.0285
+  if z>.045 and abs(ex)<.0150 and abs(y-1.1055)<.0090:
+   u=max(-1,min(1,ex/.0128));arch=max(0,1-u*u)**.82;cy=1.1055-.0006+.035*ex;upper=cy+.0054*arch;lower=cy-.0042*arch
+   inside=smooth(-.0004,.0006,upper-y)*smooth(-.0004,.0006,y-lower)*(1-smooth(.0122,.0134,abs(ex)))
+   color=blend(color,(46,31,26),.92*inside)
+   color=blend(color,(52,36,29),.80*(1-smooth(.0002,.0013,abs(y-upper)))*(1-smooth(.0125,.0145,abs(ex)))*(1-inside))
+   color=blend(color,(150,104,90),.45*(1-smooth(.0002,.0010,abs(y-lower)))*(1-smooth(.0120,.0140,abs(ex)))*(1-inside))
+  if z>.070 and abs(abs(x)-.0072)<.0036 and abs(y-1.0700)<.0018:
+   color=blend(color,(58,34,29),.45*(1-smooth(.35,.75,nz))*(1-smooth(.0022,.0036,abs(abs(x)-.0072))))
+  # The underside of the jaw is seen edge-on by both drawings; give it the drawn neck shadow instead of a streak.
+  if ny<-.35 and y<1.050:color=blend(color,(166,120,100),.75*smooth(.35,.75,-ny))
   f[i,j]=color
 face.resize((1536,1536),Image.Resampling.BICUBIC).save(OUT/'face.png')
 # v02: woven, knitted and grained tiles are generated. Mirroring a 51 px swatch of the sheet (v01) left
@@ -101,17 +114,26 @@ for name,(color,rough,amount,strength) in materials.items():
  normal_map(gray,strength).save(OUT/(name+'_normal.png'));cfg[name]={'albedo':name+'.png','nmap':name+'_normal.png','roughness':rough}
 Image.new('RGB',(512,512),(128,128,255)).save(OUT/'face_normal.png')
 cfg['face']={'albedo':'face.png','nmap':'face_normal.png','roughness':.83}
-ear=ImageOps.mirror(im.crop((1106,202,1149,252))).resize((512,512),Image.Resampling.LANCZOS)
+ear=ImageOps.mirror(im.crop((1107,186,1149,247))).resize((512,512),Image.Resampling.LANCZOS)
+# Outside the drawn ear the crop shows cheek, hair and paper; the shell's rim and back take the ear's own tone there.
+ep_=ear.load()
+for j in range(512):
+ for i in range(512):
+  zz=-.034+.036*(i+.5)/512;yy=1.110-.052*(j+.5)/512;lobe=max(0,(1.0875-yy)/.0245)
+  q=math.hypot((zz+.0155-.0034*lobe)/(.0150*(1-.36*lobe**1.3)),(yy-1.0875)/.0250)
+  ep_[i,j]=blend(ep_[i,j],(196,146,124),smooth(.90,1.08,q))
 ear.save(OUT/'ear.png');Image.new('RGB',(256,256),(128,128,255)).save(OUT/'ear_normal.png');cfg['ear']={'albedo':'ear.png','nmap':'ear_normal.png','roughness':.85}
+EYE_PX=(821.3,191.6);IRIS=(112,100,80) # pupil centre of the sheet's right eye; mid iris tone
 eye=Image.new('RGB',(512,512));ep=eye.load()
 for y in range(512):
  theta=y/512*math.pi;radius=.012*math.sin(theta)
  for x in range(512):
-  if theta<.55:
-   a=x/512*2*math.pi;r=radius/.0062;photo=sample(821.8+5.7*r*math.cos(a),195.7+5.7*r*math.sin(a));color=photo
-   if r<.36:color=blend((25,22,18),photo,.15)
-   if r>.91:color=blend(color,(195,187,165),smooth(.91,1.05,r))
-  else:color=(209,205,187)
+  if theta<.62:
+   a=x/512*2*math.pi;r=radius/.0067;photo=sample(EYE_PX[0]+7.8*r*math.cos(a),EYE_PX[1]+7.8*r*math.sin(a));color=blend(tuple(min(255,round(c*1.18)) for c in photo),(117,112,93),.30)
+   if r<.37:color=blend((25,22,18),photo,.15)
+   elif max(photo)>150 and r<.8:color=IRIS # the painted catchlight is not part of the eye
+   if r>.93:color=blend(color,(205,198,182),smooth(.93,1.06,r))
+  else:color=(205,198,182)
   ep[x,y]=color
 eye.save(OUT/'eye.png');Image.new('RGB',(256,256),(128,128,255)).save(OUT/'eye_normal.png')
 cfg['eye']={'albedo':'eye.png','nmap':'eye_normal.png','roughness':.32}
