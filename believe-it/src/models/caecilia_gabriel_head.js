@@ -24,7 +24,7 @@ export function eyelidBounds(x){
 const ell=(x,y,z,cx,cy,cz,rx,ry,rz)=>{x=(x-cx)/rx;y=(y-cy)/ry;z=(z-cz)/rz;const k=Math.hypot(x,y,z),n=Math.hypot(x/rx,y/ry,z/rz);return n>1e-12?k*(k-1)/n:-Math.min(rx,ry,rz);};
 const smin=(a,b,k)=>{const h=Math.max(k-Math.abs(a-b),0)/k;return Math.min(a,b)-h*h*k*.25;};
 const smax=(a,b,k)=>-smin(-a,-b,k);
-const NECK=[[.938,.042,.035,0],[.966,.040,.034,-.005],[.989,.035,.034,-.009],[1.015,.033,.037,-.012],[1.047,.041,.045,-.008]];
+export const NECK=[[.938,.042,.035,0],[.966,.040,.034,-.005],[.989,.035,.034,-.009],[1.015,.033,.037,-.012],[1.047,.041,.045,-.008]];
 const NOSE=[[1.058,.072,.012],[1.066,.078,.012],[1.073,.082,.0105],[1.080,.081,.009],[1.090,.075,.007],[1.102,.072,.007],[1.118,.072,.011]];
 export function headSDF(x,y,z){
  const ax=Math.abs(x),g=(cx,cy,rx,ry)=>Math.exp(-(((ax-cx)/rx)**2+((y-cy)/ry)**2));
@@ -164,7 +164,8 @@ function refineEyelids(positions,normals,indices){
 export function buildEyeGeometry(side){
   const g=new THREE.SphereGeometry(EYE.r,40,28),p=g.attributes.position;
   for(let i=0;i<p.count;i++){const y=p.getY(i)/EYE.r;if(y>.82){const f=1+.025*((y-.82)/.18)**1.6;p.setXYZ(i,p.getX(i)*f,p.getY(i)*f,p.getZ(i)*f);}}
-  g.computeVertexNormals();
+  // Analytic normals: face normals are undefined at the two collapsed poles of the sphere.
+  {const n=g.attributes.normal,q=new THREE.Vector3();for(let i=0;i<p.count;i++){q.fromBufferAttribute(p,i).normalize();n.setXYZ(i,q.x,q.y,q.z);}}
   g.applyMatrix4(new THREE.Matrix4().makeRotationX(Math.PI/2));            // pole -> +Z
   g.applyMatrix4(new THREE.Matrix4().makeRotationX(-.025));                 // relaxed, nearly level gaze
   g.applyMatrix4(new THREE.Matrix4().makeRotationY(-side*.025));            // mild convergence

@@ -6,6 +6,10 @@
 
 ## После принятия Виктории — очередь ассетов
 
+### Цецилия-младшая v02: доработка модели — 12 ноября
+
+Модель доработана по тому же одобренному листу; концепт не менялся. Перестроены волосы и косы, воротник, рукава, лиф, юбка, фартук, ботинки и плитки тканей; сетка лица и её текстура прежние. Исходники v01 сохранены как `src/models/caecilia_gabriel_geometry_v01.js`, `caecilia_gabriel_head_v01.js`, `tools/caecilia_gabriel_bake_v01.mjs`, `tools/caecilia_gabriel_textures_v01.py`; ассеты v01 не тронуты. Выдача: `deliver/believe_it_caecilia_gabriel_v02.html`, `assets/characters/caecilia_gabriel/v02/caecilia_gabriel_v02.glb`. Проверена загрузка в сцену хутора (`tools/caecilia-gabriel-farm-check.mjs`); в сборку хутора персонаж не добавлен. Подробности и остаток работ — `docs/caecilia_gabriel_v02.md`. **Пользователем не принята.**
+
 ### Цецилия-младшая v01: восстановление и первая выдача — 11 ноября
 
 Пользователь прислал и одобрил технический лист: «Вот все сделано, сделай максимальо похожим на концепт». Оригинал сохранён как `assets/concepts/characters/caecilia_gabriel_concept_v01.png` (1536×1024), SHA-256 `8527e2cf6b6558999c6320e5da0341da5fd625939b4161b8c4d33ee612f3ded3`; решение — `caecilia_gabriel_approval_v01.json` рядом. Одобрение концепта не является одобрением готовой модели.
