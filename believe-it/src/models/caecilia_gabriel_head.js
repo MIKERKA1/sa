@@ -1,4 +1,4 @@
-// Child-specific head/neck and landmarks measured on the approved concept.
+// Child-specific head/neck; every landmark is measured on the approved concept sheet.
 import * as THREE from 'three';
 export const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v));
 export const mix=(a,b,t)=>a+(b-a)*t;
@@ -9,46 +9,62 @@ export function profile(rows,y){
  const a=rows[Math.max(0,i-1)],b=rows[i],c=rows[i+1],d=rows[Math.min(rows.length-1,i+2)],span=c[0]-b[0];
  return b.slice(1).map((v,k)=>{const j=k+1,m0=(c[j]-a[j])/(c[0]-a[0]),m1=(d[j]-b[j])/(d[0]-b[0]);return clamp((2*t*t*t-3*t*t+1)*v+(t*t*t-2*t*t+t)*span*m0+(-2*t*t*t+3*t*t)*c[j]+(t*t*t-t*t)*span*m1,Math.min(v,c[j]),Math.max(v,c[j]));});
 }
-export const HEAD=[
- [1.011,.012,.034,.027],[1.019,.033,.045,.017],[1.032,.043,.056,.008],[1.052,.059,.064,.001],
- [1.076,.069,.070,-.002],[1.108,.074,.075,-.006],[1.145,.074,.076,-.010],
- [1.181,.064,.066,-.012],[1.205,.039,.041,-.013],[1.217,.002,.003,-.014]
+// v03: every table below is measured on the sheet's two portraits, in this file's own unscaled metres
+// (front: x=(px-854.5)*.000855, y=1.102-(py-195.5)*.000855; profile: z=.068-(px-1030)*.000855).
+// Rows: [height, skull half-width, face half-width, front of the bare face on the midline, centre depth].
+export const SKULL=[
+ [1.019,.016,.016,.052,.022],[1.022,.019,.019,.066,.020],[1.025,.0225,.0225,.070,.018],[1.030,.028,.028,.071,.016],
+ [1.035,.034,.034,.0725,.015],[1.040,.0395,.0395,.073,.015],[1.045,.0435,.0435,.0755,.014],[1.050,.0465,.0465,.0775,.014],
+ [1.060,.0505,.0505,.0805,.013],[1.070,.055,.0525,.082,.011],[1.080,.062,.054,.083,.008],[1.090,.069,.0555,.0825,.003],
+ [1.100,.073,.057,.081,-.001],[1.108,.074,.057,.080,-.003],[1.125,.074,.056,.0865,-.002],[1.145,.074,.058,.088,0],
+ [1.165,.071,.058,.086,-.002],[1.181,.064,.055,.077,-.005],[1.195,.052,.048,.064,-.009],[1.205,.039,.037,.047,-.012],
+ [1.212,.022,.021,.030,-.013],[1.217,.002,.002,.003,-.014]
 ];
-export const EYE={x:.028,y:1.102,z:.057,r:.012};
+// [height, half-width, half-depth, centre depth] of the skull, for callers that want an ellipse.
+export const HEAD=SKULL.map(([y,skull,face,front,cz])=>[y,skull,front-cz,cz]);
+export const CHIN=1.019,MOUTH=1.0505;
+export const EYE={x:.0285,y:1.1055,z:.058,r:.012};
 export const UVMAP={y0:.940,y1:1.232};
 export const headUV=p=>[clamp(.5+Math.atan2(p.x,p.z)/(2*Math.PI)),clamp((p.y-UVMAP.y0)/(UVMAP.y1-UVMAP.y0))];
 export function eyelidBounds(x){
- const ex=Math.abs(x)-EYE.x,u=clamp(ex/.0138,-1,1),arch=Math.max(0,1-u*u)**.82,cy=EYE.y-.0014+.035*ex;
- return {upper:cy+.0050*arch,lower:cy-.0038*arch};
+ const ex=Math.abs(x)-EYE.x,u=clamp(ex/.0128,-1,1),arch=Math.max(0,1-u*u)**.82,cy=EYE.y-.0006+.035*ex;
+ return {upper:cy+.0054*arch,lower:cy-.0042*arch};
 }
 const ell=(x,y,z,cx,cy,cz,rx,ry,rz)=>{x=(x-cx)/rx;y=(y-cy)/ry;z=(z-cz)/rz;const k=Math.hypot(x,y,z),n=Math.hypot(x/rx,y/ry,z/rz);return n>1e-12?k*(k-1)/n:-Math.min(rx,ry,rz);};
 const smin=(a,b,k)=>{const h=Math.max(k-Math.abs(a-b),0)/k;return Math.min(a,b)-h*h*k*.25;};
 const smax=(a,b,k)=>-smin(-a,-b,k);
 export const NECK=[[.938,.042,.035,0],[.966,.040,.034,-.005],[.989,.035,.034,-.009],[1.015,.033,.037,-.012],[1.047,.041,.045,-.008]];
-const NOSE=[[1.058,.072,.012],[1.066,.078,.012],[1.073,.082,.0105],[1.080,.081,.009],[1.090,.075,.007],[1.102,.072,.007],[1.118,.072,.011]];
+// Nose ridge: [height, depth of the ridge on the midline, half-width].
+const NOSE=[[1.064,.0822,.0110],[1.068,.0832,.0115],[1.072,.0872,.0105],[1.076,.0935,.0095],[1.080,.0950,.0088],[1.085,.0925,.0080],[1.090,.0885,.0073],[1.096,.0850,.0070],[1.102,.0825,.0070],[1.110,.0805,.0090]];
 export function headSDF(x,y,z){
  const ax=Math.abs(x),g=(cx,cy,rx,ry)=>Math.exp(-(((ax-cx)/rx)**2+((y-cy)/ry)**2));
- let [rx,rz,cz]=profile(HEAD,y);rx*=mix(1,.93,sstep(-.012,.025,z-cz));
- const exponent=mix(2.5,2,sstep(1.13,1.16,y)),e=z>cz?exponent:2;
- const k=(Math.abs(x/rx)**e+Math.abs((z-cz)/rz)**e)**(1/e);
- let relief=.0042*g(.044,1.079,.029,.025)+.0016*g(.028,1.122,.025,.010)-.0022*g(EYE.x,EYE.y,.019,.013)
-   +.0018*g(EYE.x,EYE.y+.0065,.014,.0025)+.0014*g(EYE.x,EYE.y-.0055,.014,.0023)
-   +.0032*g(0,1.047,.020,.004)+.0037*g(0,1.0395,.019,.0045)+.0034*g(0,1.024,.027,.016);
- if(y>NOSE[0][0]&&y<NOSE.at(-1)[0]){const [depth,width]=profile(NOSE,y);relief+=Math.max(0,depth-rz-cz)*Math.exp(-((x/width)**2))*sstep(1.058,1.065,y)*(1-sstep(1.106,1.118,y));}
- relief+=.0032*g(.010,1.067,.005,.0035)+.0015*g(0,1.064,.003,.003);
+ const [skull,face,front,cz]=profile(SKULL,y),rz=front-cz;
+ // The face is a narrower mask on the front of the skull: cheekbones about 57 mm, skull 74 mm at the ears.
+ const rx=mix(skull,face,sstep(-.010,.035,z-cz));
+ const exponent=mix(2.15,2,sstep(1.13,1.16,y)),e=z>cz?exponent:2;
+ // cheeks, brow, eye sockets, lid folds, upper and lower lip, chin pad
+ let relief=.0038*g(.040,1.072,.026,.024)+.0010*g(.029,1.121,.024,.009)-.0024*g(EYE.x,EYE.y,.018,.012)
+   +.0018*g(EYE.x,EYE.y+.0068,.013,.0025)+.0013*g(EYE.x,EYE.y-.0058,.013,.0023)
+   +.0060*g(0,1.0566,.016,.0036)+.0048*g(0,1.0458,.0145,.0038)+.0026*g(0,1.0510,.017,.0030)+.0030*g(0,1.030,.020,.010);
+ if(y>NOSE[0][0]&&y<NOSE.at(-1)[0]){const [depth,width]=profile(NOSE,y);relief+=Math.max(0,depth-front)*Math.exp(-((x/width)**2))*sstep(1.064,1.069,y)*(1-sstep(1.104,1.110,y));}
+ // nostril wings and columella
+ relief+=.0036*g(.0095,1.0735,.0042,.0042)+.0012*g(0,1.0695,.0035,.003);
  const shifted=z-relief*sstep(.0,.035,z),kk=(Math.abs(x/rx)**e+Math.abs((shifted-cz)/rz)**e)**(1/e);
- let cr=smax((kk-1)*Math.min(rx,rz),1.011-y,.005);cr=smax(cr,(1.017+.25*(.045-z)-y)/1.03,.005);cr=Math.max(cr,y-1.217);
+ let cr=smax((kk-1)*Math.min(rx,rz),CHIN-y,.005);
+ // Underside of the jaw: nearly flat under the chin, rising towards the ears at the sides.
+ const slope=mix(.08,.50,sstep(.008,.030,ax));
+ cr=smax(cr,(CHIN+slope*(.055-z)-y)/Math.hypot(1,slope),.011);cr=Math.max(cr,y-1.217);
  const [nx,nz,nc]=profile(NECK,y),nd=Math.max((Math.hypot(x/nx,(z-nc)/nz)-1)*Math.min(nx,nz),.938-y,y-1.052);
- let d=smin(cr,nd,.014);
+ let d=smin(cr,nd,.012);
  if(z<.004)return d;
  if(Math.abs(y-EYE.y)<.023&&ax<.054){
   d=smin(d,Math.hypot(ax-EYE.x,y-EYE.y,z-EYE.z)-(EYE.r+.00035),.0032);
-  const {upper,lower}=eyelidBounds(ax),depth=ell(ax,y,z,EYE.x,y,EYE.z+.012,.0138,1,.018);
+  const {upper,lower}=eyelidBounds(ax),depth=ell(ax,y,z,EYE.x,y,EYE.z+.012,.0128,1,.018);
   d=smax(d,-Math.max(depth,y-upper,lower-y),.00055);
-  d=smin(d,ell(ax,y,z,EYE.x-.0120,EYE.y-.002,.065,.0018,.0007,.002),.0007);
+  d=smin(d,ell(ax,y,z,EYE.x-.0115,EYE.y-.0015,EYE.z+.0085,.0018,.0008,.002),.0007);
  }
- d=smax(d,-ell(x,y,z,0,1.043-.001*clamp(ax/.020),.073,.020,.00036,.010),.00065);
- d=smax(d,-ell(ax,y,z,.0095,1.065,.078,.0022,.0011,.0035),.00055);
+ d=smax(d,-ell(x,y,z,0,MOUTH-.001*clamp(ax/.020),.0815,.0200,.00034,.0040),.00050);
+ d=smax(d,-ell(ax,y,z,.0068,1.0700,.0858,.0024,.0011,.0020),.0012);
  return d;
 }
 export function sdfGrad(x,y,z,e=.0001){const q=[headSDF(x+e,y,z)-headSDF(x-e,y,z),headSDF(x,y+e,z)-headSDF(x,y-e,z),headSDF(x,y,z+e)-headSDF(x,y,z-e)],l=Math.hypot(...q)||1;return q.map(v=>v/l);}
@@ -56,7 +72,7 @@ export function radialHit(a,y){const sx=Math.sin(a),cz=Math.cos(a);let r=.16;for
 export function frontZ(x,y){let z=.15;for(let i=0;i<240&&z>-.10;i++){const d=headSDF(x,y,z);if(d<1e-5)return z;z-=Math.max(d*.8,2e-5);}return NaN;}
 
 // Surface nets over the visible part of the head.
-export function buildHeadGeometry(h=.00125){ // finer sampling resolves the eyelid and nostril margins
+export function buildHeadGeometry(h=.00130){ // finer sampling resolves the eyelid and nostril margins
   const x0=-.090,y0=.932,z0=-.100,nx=Math.ceil(.180/h)+1,ny=Math.ceil(.294/h)+1,nz=Math.ceil(.207/h)+1;
   const F=new Float32Array(nx*ny*nz),id=(i,j,k)=>(k*ny+j)*nx+i;
   for(let k=0;k<nz;k++)for(let j=0;j<ny;j++)for(let i=0;i<nx;i++)F[id(i,j,k)]=headSDF(x0+i*h,y0+j*h,z0+k*h);
